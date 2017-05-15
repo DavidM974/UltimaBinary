@@ -1,0 +1,17 @@
+{# src/UB/PlatformBundle/Resources/views/layout.html.twig #}
+
+{% extends "::base.html.twig" %}
+
+{% block title %}
+  Dashboard - {{ parent() }}
+{% endblock %}
+
+{% block body %}
+
+  <hr>
+
+  {# On définit un nouveau bloc, que les vues du bundle pourront remplir #}
+  {% block ubplatform_body %}
+  {% endblock %}
+
+{% endblock %}

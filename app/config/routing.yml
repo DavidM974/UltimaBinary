@@ -1,0 +1,6 @@
+ub_platform:
+    resource: "@UBPlatformBundle/Resources/config/routing.yml"
+
+ub_core:
+    resource: "@UBCoreBundle/Resources/config/routing.yml"
+

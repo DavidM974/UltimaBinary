@@ -1,0 +1,24 @@
+
+{% extends "UBPlatformBundle::layout.html.twig" %}
+
+{% block title %}
+  Platforme index - {{ parent() }}
+{% endblock %}
+
+{% block ubplatform_body %}
+
+  <h2>Paramétrage actuel de l'application</h2>
+
+   {% for parameter in listParameters %}
+      <li>
+
+          {{ parameter.defaultRate }}
+
+        {{ parameter.martingaleSize }}
+        le {{ parameter.startTime|date('h/m/Y')}}
+      </li>
+    {% else %}
+      <li>Pas (encore !) d'annonces</li>
+    {% endfor %}
+
+  {% endblock %}

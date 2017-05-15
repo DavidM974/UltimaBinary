@@ -1,0 +1,24 @@
+{# src/UB/CoreBundle/Resources/views/Parameter/add.html.twig #}
+
+{% extends "UBPlatformBundle::layout.html.twig" %}
+
+{% block title %}
+  Accueil - {{ parent() }}
+{% endblock %}
+
+{% block ubplatform_body %}
+
+  <h2>Modifier le paramétrage</h2>
+    {% if app.session.flashBag.has('notice') %}
+        <div class="alert alert-success">
+            {% for msg in app.session.flashBag.get('notice') %}
+                {{ msg }}
+            {% endfor %}
+        </div>
+    {% endif %}
+  {{ include("UBCoreBundle:Parameter:form.html.twig") }}
+
+  <p>
+    Attention : pour l'instant un seul parametre pris en compte
+  </p>
+  {% endblock %}

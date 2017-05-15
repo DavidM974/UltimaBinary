@@ -1,0 +1,18 @@
+{# src/UB/CoreBundle/Resources/views/Parameter/add.html.twig #}
+
+{% extends "UBPlatformBundle::layout.html.twig" %}
+
+{% block title %}
+  Accueil - {{ parent() }}
+{% endblock %}
+
+{% block ubplatform_body %}
+
+  <h2>Ajouter un paramétrage</h2>
+
+  {{ include("UBCoreBundle:Parameter:form.html.twig") }}
+
+  <p>
+    Attention : pour l'instant un seul parametre pris en compte
+  </p>
+  {% endblock %}

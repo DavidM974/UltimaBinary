@@ -1,0 +1,126 @@
+parameters:
+    algo.proba : 50
+    algo.nbSequence : 300
+
+
+services:
+        
+    parameter_repo:
+        class: Doctrine\ORM\EntityRepository
+        factory: ["@doctrine.orm.entity_manager", getRepository]
+        arguments:
+            - UB\CoreBundle\Entity\Parameter
+            
+    trade_repo:
+        class: Doctrine\ORM\EntityRepository
+        factory: ["@doctrine.orm.entity_manager", getRepository]
+        arguments:
+            - UB\CoreBundle\Entity\Trade
+    currency_repo:
+        class: Doctrine\ORM\EntityRepository
+        factory: ["@doctrine.orm.entity_manager", getRepository]
+        arguments:
+            - UB\CoreBundle\Entity\Currency
+    
+    symbole_repo:
+        class: Doctrine\ORM\EntityRepository
+        factory: ["@doctrine.orm.entity_manager", getRepository]
+        arguments:
+            - UB\CoreBundle\Entity\Symbole           
+    signal_repo:
+        class: Doctrine\ORM\EntityRepository
+        factory: ["@doctrine.orm.entity_manager", getRepository]
+        arguments:
+            - UB\CoreBundle\Entity\TradeSignal
+            
+    transaction_repo:
+        class: Doctrine\ORM\EntityRepository
+        factory: ["@doctrine.orm.entity_manager", getRepository]
+        arguments:
+            - UB\CoreBundle\Entity\Transaction
+    sequence_repo:
+        class: Doctrine\ORM\EntityRepository
+        factory: ["@doctrine.orm.entity_manager", getRepository]
+        arguments:
+            - UB\CoreBundle\Entity\Sequence
+    joker_repo:
+        class: Doctrine\ORM\EntityRepository
+        factory: ["@doctrine.orm.entity_manager", getRepository]
+        arguments:
+            - UB\CoreBundle\Entity\Joker
+    static_win_joker_repo:
+        class: Doctrine\ORM\EntityRepository
+        factory: ["@doctrine.orm.entity_manager", getRepository]
+        arguments:
+            - UB\CoreBundle\Entity\StaticWinJoker
+    ub_core.algo:
+        class: UB\CoreBundle\Algo\UBAlgo
+        arguments:
+            - "@ub_core.parameter_persister"
+            - "@ub_core.trade_persister"
+            - "@ub_core.sequence_persister"
+            - "@ub_core.joker_persister"
+            - "@ub_core.static_win_joker_persister"
+            - "@ub_core.trade_signal_persister"
+            - "@parameter_repo"
+            - "@trade_repo"
+            - "@signal_repo"
+            - "@transaction_repo"
+            - "@sequence_repo"
+            - "@joker_repo"
+            - "@static_win_joker_repo"
+            - %algo.proba%
+            - %algo.nbSequence%
+            
+    ub_core.trade_persister:
+        class: UB\CoreBundle\Persister\TradePersister
+        arguments:
+            - "@doctrine.orm.entity_manager"
+            - "@trade_repo"
+
+            
+    ub_core.sequence_persister:
+        class: UB\CoreBundle\Persister\SequencePersister
+        arguments:
+            - "@doctrine.orm.entity_manager"
+            - "@sequence_repo"
+    ub_core.parameter_persister:
+        class: UB\CoreBundle\Persister\ParameterPersister
+        arguments:
+            - "@doctrine.orm.entity_manager"
+            - "@parameter_repo"
+
+    ub_core.trade_signal_persister:
+        class: UB\CoreBundle\Persister\TradeSignalPersister
+        arguments:
+            - "@doctrine.orm.entity_manager"
+            - "@signal_repo"
+            
+    ub_core.transaction_persister:
+        class: UB\CoreBundle\Persister\TransactionPersister
+        arguments:
+            - "@doctrine.orm.entity_manager"
+            - "@transaction_repo"
+
+    ub_core.joker_persister:
+        class: UB\CoreBundle\Persister\JokerPersister
+        arguments:
+            - "@doctrine.orm.entity_manager"
+            - "@joker_repo"
+            
+    ub_core.static_win_joker_persister:
+        class: UB\CoreBundle\Persister\StaticWinJokerPersister
+        arguments:
+            - "@doctrine.orm.entity_manager"
+            - "@static_win_joker_repo"
+
+    ub_core.binary_api:
+        class: UB\CoreBundle\API\BinaryApi
+        arguments:
+            - "@ub_core.trade_persister"
+            - "@trade_repo"
+            - "@symbole_repo"
+            - "@currency_repo"
+            - "@parameter_repo"
+            - "@ub_core.parameter_persister"
+

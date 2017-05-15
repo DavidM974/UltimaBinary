@@ -1,0 +1,3 @@
+ub_platform_homepage:
+    path:     /
+    defaults: { _controller: UBPlatformBundle:Default:index }

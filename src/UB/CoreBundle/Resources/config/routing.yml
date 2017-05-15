@@ -1,0 +1,10 @@
+ub_core_parameter:
+    path:     /parameter
+    defaults: { _controller: UBCoreBundle:Parameter:index }
+    
+ub_core_add_parameter:
+    path:     /add_parameter
+    defaults: { _controller: UBCoreBundle:Parameter:add }
+ub_core_edit_parameter:
+    path:     /edit_parameter/{id}
+    defaults: { _controller: UBCoreBundle:Parameter:edit }
