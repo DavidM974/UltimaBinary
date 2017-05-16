@@ -317,7 +317,7 @@ class UBAlgo {
         $trades =  $this->tradeRepo->findBySequence($sequence);
         foreach ($trades as $tradeMg) {
             echo $res. " <- Res - tradeAmour : ". $tradeMg->getAmount()." -- \n"; 
-            if ($tradeMg->getState() == Trade::STATELOOSE && $tradeMg->getAmount() < $res) {
+            if ($tradeMg->getState() == Trade::STATELOOSE && $tradeMg->getAmount() < $res && $tradeMg->getSequenceState() != Trade::SEQSTATEDONE) {
                 $tradeMg->setSequenceState(Trade::SEQSTATEDONE);
                 $this->tradePersister->persist($tradeMg);
                 $res -= $tradeMg->getAmount();
