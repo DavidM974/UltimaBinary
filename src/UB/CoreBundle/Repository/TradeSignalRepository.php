@@ -23,7 +23,7 @@ class TradeSignalRepository extends \Doctrine\ORM\EntityRepository
                 ->Where('YEAR(ts.startTime) = YEAR(:startTimeSig)')
                 ->andWhere('MONTH(ts.startTime) = MONTH(:startTimeSig)')
                 ->andWhere('DAY(ts.startTime) = DAY(:startTimeSig)')
-                ->andWhere('HOUR(ts.startTime) = DAY(:startTimeSig)')
+                ->andWhere('HOUR(ts.startTime) = HOUR(:startTimeSig)')
                 ->andWhere('MINUTE(ts.startTime) = MINUTE(:startTimeSig)')
                 ->setParameter('startTimeSig', $signal->getStartTime())
                 ->andWhere('ts.symbole = :SymboleSig')

@@ -29,7 +29,19 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
         return $trades;
 
     }
-    
+    public function getUndoneTrade($sequence) {
+         $qb = $this->createQueryBuilder('tr');
+ 
+        $result = $qb->select('tr')
+            ->Where('tr.sequenceState <> :state')
+            ->setParameter('state', \UB\CoreBundle\Entity\Trade::SEQSTATEDONE)
+            ->andWhere('tr.sequence = :seq')
+            ->setParameter('seq', $sequence)
+            ->addOrderBy('tr.signalTime', 'ASC')
+            ->getQuery()
+            ->getResult(); 
+        return $result;
+    }    
     
     public function getSubQuerySequenceTrading() {
          $subqueryBuilder = $this->createQueryBuilder('tr');

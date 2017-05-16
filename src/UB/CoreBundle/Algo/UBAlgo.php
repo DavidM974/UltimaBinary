@@ -228,6 +228,8 @@ class UBAlgo {
                 $taux = $this->parameter->getDefaultRate();
             }
             foreach ($listSequence as $sequence) {
+                $sequence->isFinished($this->tradeRepo);
+                $this->sequencePersister->persist($sequence);
                return $this->calcMiseForSequence($sequence, $taux);
             }
         }
@@ -265,6 +267,7 @@ class UBAlgo {
              echo "Update balance ! \n";
             $this->parameter->setBalance($this->parameter->getBalance()+$trade->getAmount()+$trade->getAmountRes());
             $this->parameterPersister->persist($this->parameter);
+            $trade->getSequence()->isFinished($this->tradeRepo);
             
         } else if ($trade->getState() == Trade::STATELOOSE && $trade->getSequenceState() != Trade::SEQSTATEDONE){
             $this->looseTrade($trade);
@@ -302,11 +305,7 @@ class UBAlgo {
         
         //todo trade intercale
         
-        
-
-        // je vérifie si la sequence et cloturé pour mettre à jour la sequence
-        $sequence->isFinished();
-        $this->sequencePersister->persist($sequence);
+       
         // je met à jours le statut du trade gagnant
         $trade->win();
         $this->tradePersister->persist($trade);  
@@ -314,10 +313,12 @@ class UBAlgo {
 
     public function martinGWin(Trade $trade, Sequence $sequence) {
         $res = $trade->getAmountRes();
-        $trades =  $this->tradeRepo->findBySequence($sequence);
+        $trades =  $this->tradeRepo->getUndoneTrade($sequence);
         foreach ($trades as $tradeMg) {
-            echo $res. " <- Res - tradeAmour : ". $tradeMg->getAmount()." -- \n"; 
+            echo $tradeMg->getSequenceState();
+            echo $res. " <- Res - tradeAmount : ". $tradeMg->getAmount()." -- \n"; 
             if ($tradeMg->getState() == Trade::STATELOOSE && $tradeMg->getAmount() < $res && $tradeMg->getSequenceState() != Trade::SEQSTATEDONE) {
+                echo "Sequence done ".$tradeMg->getId()."\n";
                 $tradeMg->setSequenceState(Trade::SEQSTATEDONE);
                 $this->tradePersister->persist($tradeMg);
                 $res -= $tradeMg->getAmount();

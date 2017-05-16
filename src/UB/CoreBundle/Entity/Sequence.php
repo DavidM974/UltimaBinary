@@ -4,6 +4,7 @@ namespace UB\CoreBundle\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
+use \UB\CoreBundle\Repository\TradeRepository;
 
 /**
  * Sequence
@@ -227,7 +228,7 @@ class Sequence
     
         
         // récupère la prochaine mise de la séquence non rattrapé
-    public function getNextAmountSequence(\UB\CoreBundle\Repository\TradeRepository $tradeRepo) {
+    public function getNextAmountSequence(TradeRepository $tradeRepo) {
         echo "getNextAmountSequence \n";
 
           $trades = $tradeRepo->findBySequence($this);
@@ -246,7 +247,7 @@ class Sequence
     
     
             // récupère la prochaine mise de la séquence non rattrapé
-    public function getNextAmountSequenceMg(\UB\CoreBundle\Repository\TradeRepository $tradeRepo) {
+    public function getNextAmountSequenceMg(TradeRepository $tradeRepo) {
         echo "getNextAmountSequence MG\n";
 
           $trades = $tradeRepo->findBySequence($this);
@@ -273,7 +274,7 @@ class Sequence
         return 0;
     }
     
-    public function getLastMgSequence(\UB\CoreBundle\Repository\TradeRepository $tradeRepo) {
+    public function getLastMgSequence(TradeRepository $tradeRepo) {
 
           $trades = $tradeRepo->findBySequence($this);
           foreach ($trades as $trade) {
@@ -286,7 +287,7 @@ class Sequence
         return 0;
     }
     
-    public function getNextUndoneTrade(\UB\CoreBundle\Repository\TradeRepository $tradeRepo) {
+    public function getNextUndoneTrade(TradeRepository $tradeRepo) {
 
         if ($this->getState() == Sequence::OPEN){  
             $trades = $tradeRepo->findBySequence($this);
@@ -301,9 +302,12 @@ class Sequence
         return NULL;
     }
     
-    public function isFinished() {
-        foreach ($this->trades as $trade) {
+    public function isFinished(TradeRepository $tradeRepo) {
+        echo "------ is Finished ----- \n";
+        $trades = $tradeRepo->findBySequence($this);
+        foreach ($trades as $trade) {
             if ($trade->getSequenceState() != Trade::SEQSTATEDONE) {
+              echo "------ NON TERMINEE ----- \n";  
                 return false;
             }
         }
