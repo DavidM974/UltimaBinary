@@ -152,12 +152,15 @@ class UBAlgo {
         //check if new result
         if (!empty($listSignals)) {
             echo "non empty list signal \n";
+            
             //New signal
             foreach ($listSignals as $signal) {
                 echo "signal" . $signal->getId() . " \n";
                 // récupère la prochaine valeur de mise
                 if (!$this->isAlreadyTrade($signal)) {
-                    $amount = $this->getNextMise();
+                    $rate = $this->getRateSignal($signal);
+                    
+                    $amount = $this->getNextMise($this->getBestRate($rate));
                     $trade = $this->createNewTradeForApi($signal, $amount);
 
                     // new api call with mise to send the trade
@@ -172,6 +175,43 @@ class UBAlgo {
                 $this->tradeSignalPersister->persist($signal);
             }
         }
+    }
+    public function getRateSignal(TradeSignal $signal) {
+        $symbole = $signal->getSymbole();
+        if ($signal->getContractType() == Trade::TYPECALL) {
+            return $symbole->getLastCallRate();
+        } else {
+            return $symbole->getLastPutRate();
+        }
+    }
+    public function getRateTrade(Trade $trade) {
+        $symbole = $trade->getSymbole();
+        if ($trade->getContractType() == Trade::TYPECALL) {
+            return $this->getBestRate($symbole->getLastCallRate());
+        } else {
+            return $this->getBestRate($symbole->getLastPutRate());
+        }
+    }
+    
+    public function getBestRate($rate) {
+        switch (true) {
+            case ($rate >= 0.80):
+            $res = 0.75;
+            break;
+            case ($rate >= 0.70 and $rate < 0.80):
+            $res = 0.65;
+            break;
+            case ($rate < 0.70 and $rate >= 0.65):
+            $res = 0.60;
+            break;
+            case ($rate >= 0.60 and $rate < 0.65):
+            $res = 0.58;
+            break;
+            case ($rate < 0.60):
+            $res = 0;
+            break;
+        }
+        return $res;
     }
 
     public function isAlreadyTrade(TradeSignal $signal) {
@@ -191,9 +231,8 @@ class UBAlgo {
         } else {
             echo " ----- Sequence Ouverte dispo \n";
             foreach ($listSequence as $sequence) {
-                if ($this->calcMiseForSequence($sequence, $this->parameter->getDefaultRate()) == $trade->getAmount()) {
-                    echo "Montant à ratrapper : ". $sequence->getNextAmountSequence($this->tradeRepo).' taux : '.$this->parameter->getDefaultRate()."\n";
-                    echo 'mise calculer : ' . $this->calcMise($this->parameter->getDefaultRate(), $sequence->getNextAmountSequence($this->tradeRepo)) . ' mise trade : ' . $trade->getAmount() . "\n";
+                if ($this->calcMiseForSequence($sequence, $this->getBestRate($trade->getRate())) == $trade->getAmount()) {
+                    echo "---- idSequence ".$sequence->getId().' taux : '.$this->getRateTrade($trade)." ----\n";
                     return $sequence;
                 }
             }
@@ -312,12 +351,15 @@ class UBAlgo {
         }
 
     public function martinGWin(Trade $trade, Sequence $sequence) {
-        $res = $trade->getAmountRes();
-        $trades =  $this->tradeRepo->getUndoneTrade($sequence);
+                // récupérer sum win total
+        $res = $this->tradeRepo->getSumWinSequence($sequence);
+                // recupérer tous les loose
+        $trades =  $this->tradeRepo->getLooseTrades($sequence);
+
         foreach ($trades as $tradeMg) {
             echo $tradeMg->getSequenceState();
             echo $res. " <- Res - tradeAmount : ". $tradeMg->getAmount()." -- \n"; 
-            if ($tradeMg->getState() == Trade::STATELOOSE && $tradeMg->getAmount() < $res && $tradeMg->getSequenceState() != Trade::SEQSTATEDONE) {
+            if ($tradeMg->getState() == Trade::STATELOOSE && $tradeMg->getAmount() < $res) {
                 echo "Sequence done ".$tradeMg->getId()."\n";
                 $tradeMg->setSequenceState(Trade::SEQSTATEDONE);
                 $this->tradePersister->persist($tradeMg);
@@ -363,7 +405,6 @@ class UBAlgo {
     }
 
     public function looseTrade(Trade $trade) {
-        echo "-------loose---------\n";
         $trade->setState(Trade::STATELOOSE);
         $sequence = $trade->getSequence();
         // set consecutive win 0
@@ -411,7 +452,6 @@ class UBAlgo {
             $trades = $this->tradeRepo->getTradeForSequence($sequence);
             $amount = 0;
             foreach ($trades as $trade) {
-                echo "id trade :".$trade->getId()."\n";
                 if ($trade->getSequenceState() != Trade::SEQSTATEDONE && $trade->getState() != Trade::STATEWIN) {
                     $amount += $trade->getAmount();
                     echo "recupère la valeure a recup ". $amount ."\n";
@@ -424,7 +464,7 @@ class UBAlgo {
             echo "sequence apres MG \n";
             $amount = $sequence->getNextAmountSequenceMg($this->tradeRepo);
         }
-        echo ceil($amount / ($taux)). "  test \n";
+        echo ceil($amount / ($taux)). " ******  test taux ".$taux." \n";
         return ceil($amount / ($taux));
     }
     

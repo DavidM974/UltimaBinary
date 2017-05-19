@@ -6,11 +6,15 @@
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/API/BinaryApi.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Repository/TradeSignalRepository.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Algo/UBAlgo.php</file>
+            <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Entity/Symbole.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Repository/TradeRepository.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Entity/Trade.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Repository/SequenceRepository.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Entity/Sequence.php</file>
+            <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Persister/TradeSignalPersister.php</file>
+            <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Resources/config/services.yml</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Command/PortalBinaryCommand.php</file>
+            <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Entity/TradeSignal.php</file>
         </group>
     </open-files>
 </project-private>

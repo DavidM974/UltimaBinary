@@ -43,6 +43,31 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
         return $result;
     }    
     
+    public function getLooseTrades($sequence) {
+        $qb = $this->createQueryBuilder('tr');
+
+        $result = $qb->select('tr')
+                ->Where('tr.state = :state')
+                ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATELOOSE)
+                ->andWhere('tr.sequence = :seq')
+                ->setParameter('seq', $sequence)
+                ->addOrderBy('tr.signalTime', 'ASC')
+                ->getQuery()
+                ->getResult();
+        return $result;
+    }
+
+    public function getSumWinSequence($sequence) {
+        return $this->createQueryBuilder('tr')
+                        ->Where('tr.state = :state')
+                        ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATEWIN)
+                        ->andWhere('tr.sequence = :seq')
+                        ->setParameter('seq', $sequence)
+                        ->select('SUM(tr.amountRes) as sumLoose')
+                        ->getQuery()
+                        ->getSingleScalarResult();
+    }
+
     public function getSubQuerySequenceTrading() {
          $subqueryBuilder = $this->createQueryBuilder('tr');
  

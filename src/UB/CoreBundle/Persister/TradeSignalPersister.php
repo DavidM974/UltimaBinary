@@ -34,13 +34,15 @@ class TradeSignalPersister
     }
     
     
-    public function randomSignal($symbole)
+    public function randomSignal($symbole, $categSignal)
     {
         $signal = new TradeSignal();
         $signal->setSymbole($symbole);
         $signal->setStartTime(new \DateTime());
         $signal->setDuration(1);
         $signal->setIsTrade(0);
+        $signal->setCategorySignal($categSignal);
+        $signal->setName($categSignal->getName());
         if (mt_rand(0, 99) < 50) {
             $signal->setContractType('CALL');
         } else {

@@ -32,7 +32,11 @@ services:
         factory: ["@doctrine.orm.entity_manager", getRepository]
         arguments:
             - UB\CoreBundle\Entity\TradeSignal
-            
+    category_signal_repo:
+        class: Doctrine\ORM\EntityRepository
+        factory: ["@doctrine.orm.entity_manager", getRepository]
+        arguments:
+            - UB\CoreBundle\Entity\CategorySignal       
     transaction_repo:
         class: Doctrine\ORM\EntityRepository
         factory: ["@doctrine.orm.entity_manager", getRepository]
@@ -113,6 +117,12 @@ services:
         arguments:
             - "@doctrine.orm.entity_manager"
             - "@static_win_joker_repo"
+            
+    ub_core.symbole_persister:
+        class: UB\CoreBundle\Persister\SymbolePersister
+        arguments:
+            - "@doctrine.orm.entity_manager"
+            - "@symbole_repo"
 
     ub_core.binary_api:
         class: UB\CoreBundle\API\BinaryApi

@@ -112,24 +112,30 @@ class BinaryApi implements ApiInterface {
     }
     
     function SaveNewTrade($data) {
-        //crée le fichier pour envoyer au MT4 2 champs transaction_id, mise
-        
-        
-                $symbole = $this->symboleRepo->findOneBy(array('name' => $data['echo_req']['parameters']['symbol']));
-                $currency = $this->currencyRepo->findOneBy(array('name' => $data['echo_req']['parameters']['currency']));
-                
-                $trade = new Trade();
-                $trade->setAmount($data['echo_req']['parameters']['amount']);
-                $trade->setSymbole($symbole);
-                $trade->setDuration($data['echo_req']['parameters']['duration']);
-                $trade->setCurrency($currency);
-                $trade->setContractType($data['echo_req']['parameters']['contract_type']);
-                $trade->setState(Trade::STATETRADE);
-                $trade->setIdBinary($data['buy']['transaction_id']);
-                $trade->setSignalTime(new \DateTime());
-                $this->tradePersister->persist($trade);
+        $symbole = $this->symboleRepo->findOneBy(array('name' => $data['echo_req']['parameters']['symbol']));
+        $currency = $this->currencyRepo->findOneBy(array('name' => $data['echo_req']['parameters']['currency']));
+            
+        $trade = new Trade();
+        $trade->setAmount($data['echo_req']['parameters']['amount']);
+        $trade->setSymbole($symbole);
+        $trade->setDuration($data['echo_req']['parameters']['duration']);
+        $trade->setCurrency($currency);
+        $trade->setContractType($data['echo_req']['parameters']['contract_type']);
+        $trade->setState(Trade::STATETRADE);
+        $trade->setIdBinary($data['buy']['transaction_id']);
+        $trade->setSignalTime(new \DateTime());
+        $trade->setRate($this->calcRate($symbole,$data['echo_req']['parameters']['contract_type']));
+        $this->tradePersister->persist($trade);
 
-                return $trade;
+        return $trade;
+    }
+    // récupère le taux de la base utilisé pour ce trade
+    public function calcRate($symbole, $contractType) {
+        if ($contractType == Trade::TYPECALL) {
+            return $symbole->getLastCallRate();
+        } else {
+            return $symbole->getLastPutRate();
+        }
     }
 
     //ecris le montant dans un fichier
@@ -153,18 +159,30 @@ class BinaryApi implements ApiInterface {
         $conn->send('{"ping": 1} ');
     }
 
-    /*
-     * recuperer le taux 
-     * {
-  "proposal": 1,
-  "amount": "1",
-  "basis": "stake",
-  "contract_type": "PUT",
-  "currency": "EUR",
-  "duration": "60",
-  "duration_unit": "s",
-  "symbol": "frxUSDJPY"
-}
-     */
+    function UpdateRate($conn, $contractType, $symbol) {
+        $conn->send('
+                    {
+                        "proposal": 1,
+                        "amount": "1",
+                        "basis": "stake",
+                        "contract_type": "'.$contractType.'",
+                        "currency": "EUR",
+                        "duration": "60",
+                        "duration_unit": "s",
+                        "symbol": "'.$symbol.'"
+                      }');
+    }
+    
+    function receiveUpdateRate($data)
+    {
+        $res = array();
+        $rate = $data['proposal']['payout'] - 1;
+        $res['rate'] = $rate; 
+        $res['symbol'] = $data['echo_req']['symbol'];
+        $res['contractType'] = $data['echo_req']['contract_type'];
+        return $res;
+    }
+
+
     
 }

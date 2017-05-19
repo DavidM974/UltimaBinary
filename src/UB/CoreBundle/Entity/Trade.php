@@ -122,6 +122,13 @@ class Trade
      */
     private $currency;
     
+     /**
+     * @var float
+     *
+     * @ORM\Column(name="rate", type="float", nullable=true)
+     */
+    private $rate;
+    
     
     
     
@@ -451,6 +458,31 @@ class Trade
         $this->setSequenceState(Trade::SEQSTATEDONE);
         $this->setState(Trade::STATEWIN);
         return $this;
+    }
+    
+    
+     /**
+     * Set rate
+     *
+     * @param float $rate
+     *
+     * @return Parameter
+     */
+    public function setRate($rate)
+    {
+        $this->rate = $rate;
+
+        return $this;
+    }
+
+    /**
+     * Get rate
+     *
+     * @return float
+     */
+    public function getRate()
+    {
+        return $this->rate;
     }
 
 }

@@ -65,6 +65,19 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 if (isset($json['balance'])) {
                     $this->api->receivedBalance($json);
                 }
+                if (isset($json['proposal'])) {
+                    $res = $this->api->receiveUpdateRate($json);
+                    $symboleRepo = $this->getContainer()->get('symbole_repo');
+                    $symbolePersister = $this->getContainer()->get('ub_core.symbole_persister');
+                    $symbole = $symboleRepo->findOneBy(array('name' => $res['symbol']));
+                    if ($res['contractType'] == 'CALL') {
+                    $symbole->setLastCallRate($res['rate']);
+                    } else {
+                        $symbole->setLastPutRate($res['rate']);
+                    }
+                    $symbolePersister->persist($symbole);
+                }
+                
             });
 
 
@@ -84,14 +97,25 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $this->ubAlgo->checkNewSignal($conn, $this->api);
             });
             
-            /*
-            $loop->addPeriodicTimer(85, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(120, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
-                $symbole = $symboleRepo->findOneById(1);
-                 $this->tradeSignalPersister->randomSignal($symbole);
+                $listSymbol = $symboleRepo->findAll();
+                foreach ($listSymbol as $symbol) {
+                    $this->api->UpdateRate($conn, 'CALL', $symbol->getName());
+                    $this->api->UpdateRate($conn, 'PUT', $symbol->getName());
+                }
             });
-            */
+            
+            
+            $loop->addPeriodicTimer(100, function(Timer $timer) use ( $conn) {
+                // api askLastResult
+                $symboleRepo = $this->getContainer()->get('symbole_repo');
+                $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5);
+                $symbole = $symboleRepo->findOneById(1);
+                 $this->tradeSignalPersister->randomSignal($symbole, $categSignal);
+            });
+            
             $conn->on('close', function($code = null, $reason = null) use ($loop) {
                 print "Connection closed ({$code} - {$reason})\n";
                 $loop->stop();
