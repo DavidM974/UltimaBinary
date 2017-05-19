@@ -84,14 +84,14 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $this->ubAlgo->checkNewSignal($conn, $this->api);
             });
             
-            
+            /*
             $loop->addPeriodicTimer(85, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
                 $symbole = $symboleRepo->findOneById(1);
                  $this->tradeSignalPersister->randomSignal($symbole);
             });
-            
+            */
             $conn->on('close', function($code = null, $reason = null) use ($loop) {
                 print "Connection closed ({$code} - {$reason})\n";
                 $loop->stop();
@@ -112,10 +112,6 @@ class PortalBinaryCommand extends ContainerAwareCommand
     {
         $this
                 ->setName('ub:portal')
-                ->addArgument('mode', InputArgument::REQUIRED, 'lance le portail en mode demo ou portail')
-                ->addArgument('Length', InputArgument::OPTIONAL, 'Nombre de tread en mode algo')
-                ->addArgument('proba', InputArgument::OPTIONAL, 'probabilité pour simulation')
-                ->addArgument('nbSequence', InputArgument::OPTIONAL, 'Nombre de tread ')
                 ->setDescription('Genere le robot qui va tourner en tache de fond')
                 ->setHelp('Cette commande vous permet de facilement executer le robot avec symfony 3')
             ;
@@ -135,21 +131,8 @@ class PortalBinaryCommand extends ContainerAwareCommand
          $this->api = $this->getContainer()->get('ub_core.binary_api');
          $this->ubAlgo = $this->getContainer()->get('ub_core.algo');
          $this->tradeSignalPersister = $this->getContainer()->get('ub_core.trade_signal_persister');
-         
-         
-        if ($input->getArgument('mode') == 'algo' or $input->getArgument('mode') == 'portal' )
-        {
-            $output->writeln('mode : '.$input->getArgument('mode'));
-            
-            if ($input->getArgument('mode') == 'algo'){
-                // mode algo
-                $this->lenght = $input->getArgument('mode');
-                $tradeRepo = $this->getContainer()->get('trade_repo');
-                $ubAlgo->setResultTrade($tradeRepo->findOneBy(array('id' =>  20)));
-                $output->writeln('test next Mise : '.$ubAlgo->getNextMise());
-            }
-            else
-            {
+         //init signal receive when the progam was off
+        $this->ubAlgo->initTradeSignalBegin();
                 //mode portal
                 
                 while (1) {
@@ -160,10 +143,6 @@ class PortalBinaryCommand extends ContainerAwareCommand
                         echo 'Exception recue : ',  $e->getMessage(), "\n";
                     }
                 }
-            }
-            
-        }
-        
-         
+      
     }
 }

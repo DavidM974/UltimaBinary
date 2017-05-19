@@ -32,6 +32,8 @@ class TradeSignalRepository extends \Doctrine\ORM\EntityRepository
                 ->setParameter('contractTypeSig', $signal->getContractType())
                 ->andWhere('ts.id <> :id')
                 ->setParameter('id', $signal->getId())
+                ->andWhere('ts.duration = :duration')
+                ->setParameter('duration', $signal->getDuration())
                 ->getQuery()
                 ->getResult();
 

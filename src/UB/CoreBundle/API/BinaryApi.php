@@ -153,4 +153,18 @@ class BinaryApi implements ApiInterface {
         $conn->send('{"ping": 1} ');
     }
 
+    /*
+     * recuperer le taux 
+     * {
+  "proposal": 1,
+  "amount": "1",
+  "basis": "stake",
+  "contract_type": "PUT",
+  "currency": "EUR",
+  "duration": "60",
+  "duration_unit": "s",
+  "symbol": "frxUSDJPY"
+}
+     */
+    
 }

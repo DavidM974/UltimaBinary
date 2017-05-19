@@ -11,7 +11,7 @@ namespace UB\CoreBundle\Repository;
 class TradeRepository extends \Doctrine\ORM\EntityRepository
 {
     // créer une requete qui récupére la plus grande mise du jour
-    // créer une fonction qui retourne des stats sur un nombre de trade
+    // créer une fonction qui retourne des statr sur un nombre de trade
     
     //
     public function getNewTrades() {
@@ -51,5 +51,28 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
             ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATETRADE)
             ->distinct('tr.sequence'); 
         return $subquery;
+    }
+    
+           public function isAlreadyTradeInSameMinute(\UB\CoreBundle\Entity\TradeSignal $signal) {          
+        $qb = $this->createQueryBuilder('tr');
+        $res = $qb->select('tr')
+                ->Where('YEAR(tr.signalTime) = YEAR(:signalTimeSig)')
+                ->andWhere('MONTH(tr.signalTime) = MONTH(:signalTimeSig)')
+                ->andWhere('DAY(tr.signalTime) = DAY(:signalTimeSig)')
+                ->andWhere('HOUR(tr.signalTime) = HOUR(:signalTimeSig)')
+                ->andWhere('MINUTE(tr.signalTime) = MINUTE(:signalTimeSig)')
+                ->setParameter('signalTimeSig', $signal->getStartTime())
+                ->andWhere('tr.symbole = :SymboleSig')
+                ->setParameter('SymboleSig', $signal->getSymbole())
+                ->andWhere('tr.contractType = :contractTypeSig')
+                ->setParameter('contractTypeSig', $signal->getContractType())
+                ->getQuery()
+                ->getResult();
+
+        if (empty($res)) {
+            return false;
+        } else {
+            return true;
+        }
     }
 }

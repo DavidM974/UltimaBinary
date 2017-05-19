@@ -392,7 +392,7 @@ class UBAlgo {
 
         if ($balance >= 1000) {
             echo "compte : $balance \n";
-            return round($balance / 1000, 2);
+            return round($balance / 1000 / 2, 2);
         } else {
             return UBAlgo::DEFAULT_MISE;
         }
@@ -426,6 +426,16 @@ class UBAlgo {
         }
         echo ceil($amount / ($taux)). "  test \n";
         return ceil($amount / ($taux));
+    }
+    
+    // initialise tous les signaux non pris a 1 pour eviter les mauvais signaux
+    public function initTradeSignalBegin()
+    {
+        $listSignal = $this->signalRepo->findByIsTrade(0);
+        foreach ($listSignal as $signal) {
+            $signal->setIsTrade(1);
+            $this->tradeSignalPersister->persist($signal);
+        }
     }
 
 }
