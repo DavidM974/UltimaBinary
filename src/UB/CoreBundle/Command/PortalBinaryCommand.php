@@ -97,7 +97,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $this->ubAlgo->checkNewSignal($conn, $this->api);
             });
             
-            $loop->addPeriodicTimer(120, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(125, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
                 $listSymbol = $symboleRepo->findAll();
@@ -107,7 +107,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 }
             });
             
-            
+            /*
             $loop->addPeriodicTimer(100, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
@@ -115,7 +115,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $symbole = $symboleRepo->findOneById(1);
                  $this->tradeSignalPersister->randomSignal($symbole, $categSignal);
             });
-            
+            */
             $conn->on('close', function($code = null, $reason = null) use ($loop) {
                 print "Connection closed ({$code} - {$reason})\n";
                 $loop->stop();

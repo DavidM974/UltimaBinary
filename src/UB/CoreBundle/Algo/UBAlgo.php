@@ -53,6 +53,7 @@ class UBAlgo {
     private $miseInitial;
     private $miseCourante;
     private $staticWinJoker;
+    private $sequencesToExclude;
     
     const DEFAULT_MISE = 1;
 
@@ -100,7 +101,7 @@ class UBAlgo {
         //$this->montant == $parameter->getBalance();
         $this->proba = $proba;
         $this->nbSequence = $nbSequence;
-
+        $this->sequencesToExclude = array();
         // todo create api binary
         //$this->myApi = $myapi;
     }
@@ -162,7 +163,6 @@ class UBAlgo {
                     
                     $amount = $this->getNextMise($this->getBestRate($rate));
                     $trade = $this->createNewTradeForApi($signal, $amount);
-
                     // new api call with mise to send the trade
                     if ($trade->getContractType() == Trade::TYPECALL) {
                         $api->miseHausse($conn, $trade);
@@ -174,6 +174,7 @@ class UBAlgo {
                 $signal->setIsTrade(true);
                 $this->tradeSignalPersister->persist($signal);
             }
+            $this->sequencesToExclude = Array();
         }
     }
     public function getRateSignal(TradeSignal $signal) {
@@ -259,16 +260,23 @@ class UBAlgo {
         //verifie si il y a une sequence ouverte
         $this->parameter = $this->getLastParameter();
         $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading();
+        foreach($listSequence as $elementKey => $sequenceL) {
+            foreach($this->sequencesToExclude as $sequenceDel) {
+                if($sequenceDel->getId() == $sequenceL->getId()){
+                    //delete this particular object from the $array
+                    unset($listSequence [$elementKey]);
+                } 
+            }
+        }
         if (empty($listSequence)) {
             return $this->getNewMiseInit();
         } else {
             echo "Sequence non terminee \n";
-            if ($taux == NULL) {
-                $taux = $this->parameter->getDefaultRate();
-            }
+            if ($taux == NULL) {$taux = $this->parameter->getDefaultRate();}
             foreach ($listSequence as $sequence) {
                 $sequence->isFinished($this->tradeRepo);
                 $this->sequencePersister->persist($sequence);
+                $this->sequencesToExclude[] = $sequence;
                return $this->calcMiseForSequence($sequence, $taux);
             }
         }

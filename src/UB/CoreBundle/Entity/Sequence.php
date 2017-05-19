@@ -235,7 +235,6 @@ class Sequence
 
           foreach ($trades as $trade) {
               // retourne la première mise 
-              echo 'id trade :'. $trade->getId()."\n";
               if($trade->getSequenceState() != Trade::SEQSTATEDONE){
                 return $trade->getAmount();
               }
@@ -254,7 +253,6 @@ class Sequence
           $sumLoose = 0;
           foreach ($trades as $trade) {
               // retourne la première mise 
-              echo 'id trade :'. $trade->getId()."\n";
               if($trade->getSequenceState() == Trade::SEQSTATEFIRST || $trade->getSequenceState() == Trade::SEQSTATEMARTING){
                 $sumLoose += $trade->getAmount();
               }
@@ -264,7 +262,6 @@ class Sequence
           
           foreach ($trades as $trade) {
               // retourne la première mise 
-              echo 'id trade :'. $trade->getId()."\n";
               if($trade->getSequenceState() == Trade::SEQSTATEUNDONE || $trade->getSequenceState() == Trade::SEQSTATELASTMARTING){
                 return $trade->getAmount();
               }
