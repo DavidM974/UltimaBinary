@@ -19,13 +19,19 @@ class TradeSignalRepository extends \Doctrine\ORM\EntityRepository
        
        public function isSignalAlreadyTradeInSameMinute(\UB\CoreBundle\Entity\TradeSignal $signal) {          
         $qb = $this->createQueryBuilder('ts');
-        $res = $qb->select('ts')
+         $qb->select('ts')
                 ->Where('YEAR(ts.startTime) = YEAR(:startTimeSig)')
                 ->andWhere('MONTH(ts.startTime) = MONTH(:startTimeSig)')
                 ->andWhere('DAY(ts.startTime) = DAY(:startTimeSig)')
-                ->andWhere('HOUR(ts.startTime) = HOUR(:startTimeSig)')
-                ->andWhere('MINUTE(ts.startTime) = MINUTE(:startTimeSig)')
-                ->setParameter('startTimeSig', $signal->getStartTime())
+                ->andWhere('HOUR(ts.startTime) = HOUR(:startTimeSig)');
+                if($signal->getDuration() == 1) {
+                    $qb->andWhere('MINUTE(ts.startTime) = MINUTE(:startTimeSig)');
+                }
+                if($signal->getDuration() == 5) {
+                    $qb->andWhere('MINUTE(ts.startTime) <= MINUTE(:startTimeSig)')
+                       ->andWhere('MINUTE(ts.startTime) >= (MINUTE(:startTimeSig) - 5)'); 
+                }
+           $res = $qb->setParameter('startTimeSig', $signal->getStartTime())
                 ->andWhere('ts.symbole = :SymboleSig')
                 ->setParameter('SymboleSig', $signal->getSymbole())
                 ->andWhere('ts.contractType = :contractTypeSig')

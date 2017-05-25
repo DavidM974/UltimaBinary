@@ -30,7 +30,7 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
 
     }
     
-    public function getOpenSequenceNotTrading() {
+    public function getOpenSequenceNotTrading($idCategSignal = NULL, $martinG = NULL) {
         $subqb = $this->createQueryBuilder('s');
         $subQuery = $subqb->select('s.id')
                 ->innerJoin('s.trades', 'tr')
@@ -43,14 +43,17 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
         if (empty($subQuery)) {
             $subQuery = array(0);
         }
-        $query = $qb
+        $qb
                 ->select('s')
                 ->where($qb->expr()->notIn('s.id', ':subQuery'))
                 ->setParameter('subQuery', $subQuery)
                 ->andWhere('s.state = :state')
-                ->setParameter('state', 'OPEN')
-                ->getQuery()
-        ;
+                ->setParameter('state', 'OPEN');
+        if ($idCategSignal == 5) {
+            $qb->andWhere('s.length <= :size')
+                ->setParameter('size',($martinG -2));
+        }
+               $query = $qb->getQuery();
         return $query->getResult();
     }
 

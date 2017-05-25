@@ -24,6 +24,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
     private $api;
     private $ubAlgo;
     private $tradeSignalPersister;
+    //const APIKEY='hbMdhGGQErEeCXN';
     const APIKEY='oGrJBdcWE3VPIOQ';
     
     
@@ -36,7 +37,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
     
     public function mainCore($apiKey, $loop) {
 
-// "app_id": "3008"
+// "app_id": "3008" 3020
         $connector = new Connector($this->loop);  
         $connector('wss://ws.binaryws.com/websockets/v3?app_id=3008')->then(
                 function(WebSocket $conn) use ($loop, $apiKey) {
@@ -107,15 +108,17 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 }
             });
             
-            /*
+            
             $loop->addPeriodicTimer(100, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
                 $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5);
-                $symbole = $symboleRepo->findOneById(1);
+                $symbole = $symboleRepo->findOneById(3);
                  $this->tradeSignalPersister->randomSignal($symbole, $categSignal);
             });
-            */
+             
+             
+            
             $conn->on('close', function($code = null, $reason = null) use ($loop) {
                 print "Connection closed ({$code} - {$reason})\n";
                 $loop->stop();

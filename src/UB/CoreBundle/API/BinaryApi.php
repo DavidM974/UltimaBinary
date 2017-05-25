@@ -167,7 +167,7 @@ class BinaryApi implements ApiInterface {
                         "basis": "stake",
                         "contract_type": "'.$contractType.'",
                         "currency": "EUR",
-                        "duration": "60",
+                        "duration": "120",
                         "duration_unit": "s",
                         "symbol": "'.$symbol.'"
                       }');
