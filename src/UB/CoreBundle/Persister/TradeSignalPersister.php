@@ -36,6 +36,7 @@ class TradeSignalPersister
     
     public function randomSignal($symbole, $categSignal)
     {
+    $tradeSignal = $this->tradeSignalRepo->getLastEntity();
         $signal = new TradeSignal();
         $signal->setSymbole($symbole);
         $signal->setStartTime(new \DateTime());
@@ -43,11 +44,14 @@ class TradeSignalPersister
         $signal->setIsTrade(0);
         $signal->setCategorySignal($categSignal);
         $signal->setName($categSignal->getName());
-        if (mt_rand(0, 99) < 50) {
+        
+        if ($tradeSignal->getContractType() == 'PUT')
+        {
             $signal->setContractType('CALL');
         } else {
             $signal->setContractType('PUT');
-        }
-        $this->persist($signal);
+        }     
+            $this->persist($signal);
+
     }
 }
