@@ -88,7 +88,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $this->api->sendPing($conn);
             });*/
 
-            $loop->addPeriodicTimer(20, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(3, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                  $this->api->askLastResult($conn);
             });
@@ -109,7 +109,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
             });
             
             
-            $loop->addPeriodicTimer(100, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(5, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
                 $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5);

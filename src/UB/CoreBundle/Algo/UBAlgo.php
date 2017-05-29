@@ -313,13 +313,13 @@ public function isUnderMgSize()
                 $taux = $this->parameter->getDefaultRate();
             }
             foreach ($listSequence as $sequence) {
-                if ($sequence->getlength() >= $this->parameter->getMartingaleSize() && $idCategSignal != 5) {
+                if (!$this->tradeRepo->isTrading() && $sequence->getlength() >= $this->parameter->getMartingaleSize() && $idCategSignal != 5) {
                     echo "------- PAS DANS  la matrinGale SIGNAL MT4 ----------";
                     $sequence->isFinished($this->tradeRepo);
                     $this->sequencePersister->persist($sequence);
                     $this->sequencesToExclude[] = $sequence;
                     return $this->calcMiseForSequence($sequence, $taux);
-                } else if ($sequence->getLength() < $this->parameter->getMartingaleSize()) {
+                } else if (!$this->tradeRepo->isTrading() &&  $sequence->getLength() < $this->parameter->getMartingaleSize()) {
                     echo "------- DANS la matrinGale ----------";
                     $sequence->isFinished($this->tradeRepo);
                     $this->sequencePersister->persist($sequence);
@@ -367,10 +367,6 @@ public function isUnderMgSize()
             
         } else if ($trade->getState() == Trade::STATELOOSE && $trade->getSequenceState() != Trade::SEQSTATEDONE){
             $this->looseTrade($trade);
-            if($this->parameter->getBalance() < 150) {
-                echo "SECURITE COMPTE";
-                exit();
-            }
         } 
     }
 

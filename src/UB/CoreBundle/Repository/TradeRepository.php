@@ -67,6 +67,23 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
                         ->getQuery()
                         ->getSingleScalarResult();
     }
+    
+    public function isTrading() {
+        $queryBuilder = $this->createQueryBuilder('tr');
+
+        $res = $queryBuilder->select('tr')
+                ->Where('tr.state = :state')
+                ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATETRADE)
+                ->orderBy('tr.signalTime', 'ASC')
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
+        if($res == NULL) {
+            return false;
+        } else {
+            return true;
+        }
+    }
 
     public function getSubQuerySequenceTrading() {
          $subqueryBuilder = $this->createQueryBuilder('tr');
