@@ -106,6 +106,7 @@ class BinaryApi implements ApiInterface {
                $this->tradePersister->persist($trade);
            } else {
                //todo créer le trade 
+               echo "trade non existant ----------- \n";
            }
         }
         return $tabTread;

@@ -34,8 +34,8 @@ class TradeSignalRepository extends \Doctrine\ORM\EntityRepository
            $res = $qb->setParameter('startTimeSig', $signal->getStartTime())
                 ->andWhere('ts.symbole = :SymboleSig')
                 ->setParameter('SymboleSig', $signal->getSymbole())
-                ->andWhere('ts.contractType = :contractTypeSig')
-                ->setParameter('contractTypeSig', $signal->getContractType())
+            //    ->andWhere('ts.contractType = :contractTypeSig')
+            //    ->setParameter('contractTypeSig', $signal->getContractType())
                 ->andWhere('ts.id <> :id')
                 ->setParameter('id', $signal->getId())
                 ->andWhere('ts.duration = :duration')
@@ -48,6 +48,15 @@ class TradeSignalRepository extends \Doctrine\ORM\EntityRepository
         } else {
             return true;
         }
+    }
+
+    
+     public function getLastEntity() {
+        return $this->createQueryBuilder('s')->
+                        orderBy('s.startTime', 'DESC')->
+                        setMaxResults(1)->
+                        getQuery()->
+                        getOneOrNullResult();
     }
 
 }

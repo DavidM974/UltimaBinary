@@ -81,6 +81,7 @@ doctrine:
               YEAR: DoctrineExtensions\Query\Mysql\Year
               HOUR: DoctrineExtensions\Query\Mysql\Hour
               MINUTE: DoctrineExtensions\Query\Mysql\Minute
+              SECOND: DoctrineExtensions\Query\Mysql\Second
 
 # Swiftmailer Configuration
 swiftmailer:

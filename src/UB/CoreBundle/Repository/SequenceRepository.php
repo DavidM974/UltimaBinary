@@ -49,10 +49,10 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
                 ->setParameter('subQuery', $subQuery)
                 ->andWhere('s.state = :state')
                 ->setParameter('state', 'OPEN');
-        if ($idCategSignal == 5) {
+       /* if ($idCategSignal == 5) {
             $qb->andWhere('s.length <= :size')
-                ->setParameter('size',($martinG -2));
-        }
+                ->setParameter('size',($martinG -1));
+        }*/
                $query = $qb->getQuery();
         return $query->getResult();
     }

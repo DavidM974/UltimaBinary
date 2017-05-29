@@ -24,8 +24,8 @@ class PortalBinaryCommand extends ContainerAwareCommand
     private $api;
     private $ubAlgo;
     private $tradeSignalPersister;
-    //const APIKEY='hbMdhGGQErEeCXN';
-    const APIKEY='oGrJBdcWE3VPIOQ';
+    const APIKEY='hbMdhGGQErEeCXN';
+  //  const APIKEY='oGrJBdcWE3VPIOQ';
     
     
     function __construct(){
@@ -39,7 +39,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
 
 // "app_id": "3008" 3020
         $connector = new Connector($this->loop);  
-        $connector('wss://ws.binaryws.com/websockets/v3?app_id=3008')->then(
+        $connector('wss://ws.binaryws.com/websockets/v3?app_id=3020')->then(
                 function(WebSocket $conn) use ($loop, $apiKey) {
 
 
@@ -88,7 +88,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $this->api->sendPing($conn);
             });*/
 
-            $loop->addPeriodicTimer(20, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(10, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                  $this->api->askLastResult($conn);
             });
@@ -98,7 +98,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $this->ubAlgo->checkNewSignal($conn, $this->api);
             });
             
-            $loop->addPeriodicTimer(125, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(500, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
                 $listSymbol = $symboleRepo->findAll();
@@ -108,8 +108,8 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 }
             });
             
-            
-            $loop->addPeriodicTimer(100, function(Timer $timer) use ( $conn) {
+          /*  
+            $loop->addPeriodicTimer(80, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
                 $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5);
@@ -117,7 +117,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                  $this->tradeSignalPersister->randomSignal($symbole, $categSignal);
             });
              
-             
+            */ 
             
             $conn->on('close', function($code = null, $reason = null) use ($loop) {
                 print "Connection closed ({$code} - {$reason})\n";
