@@ -40,7 +40,7 @@ class TradeSignalPersister
         $signal = new TradeSignal();
         $signal->setSymbole($symbole);
         $signal->setStartTime(new \DateTime());
-        $signal->setDuration(1);
+        $signal->setDuration(5);
         $signal->setIsTrade(0);
         $signal->setCategorySignal($categSignal);
         $signal->setName($categSignal->getName());

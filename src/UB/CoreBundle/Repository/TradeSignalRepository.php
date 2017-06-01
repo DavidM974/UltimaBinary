@@ -49,5 +49,12 @@ class TradeSignalRepository extends \Doctrine\ORM\EntityRepository
             return true;
         }
     }
-
+    
+    public function getLastEntity() {
+        return $this->createQueryBuilder('s')
+                ->orderBy('s.startTime', 'DESC')
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
+    }
 }

@@ -44,7 +44,7 @@ class BinaryApi implements ApiInterface {
                             "contract_type": "CALL",
                             "currency": "' . $trade->getCurrency()->getName() . '",
                             "duration": "' . $trade->getDuration() . '",
-                            "duration_unit": "m",
+                            "duration_unit": "t",
                             "symbol": "' . $trade->getSymbole()->getName() . '"
                       }}');
     }
@@ -60,7 +60,7 @@ class BinaryApi implements ApiInterface {
                             "contract_type": "PUT",
                             "currency": "' . $trade->getCurrency()->getName() . '",
                             "duration": "' . $trade->getDuration() . '",
-                            "duration_unit": "m",
+                            "duration_unit": "t",
                             "symbol": "' . $trade->getSymbole()->getName() . '"
                       }}');
     }

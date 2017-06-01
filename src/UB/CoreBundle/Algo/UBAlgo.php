@@ -54,6 +54,7 @@ class UBAlgo {
     private $miseCourante;
     private $staticWinJoker;
     private $sequencesToExclude;
+    private $flag = true;
     
     const DEFAULT_MISE = 0.5;
 
@@ -183,7 +184,7 @@ public function isUnderMgSize()
             foreach ($listSignals as $signal) {
                 echo "signal" . $signal->getId() . " \n";
                 // récupère la prochaine valeur de mise
-                if (!$this->isAlreadyTrade($signal) && $signal->getCategorySignal()->getId() != 5 ) { // 5 random ID
+                if (!$this->tradeRepo->isTrading() && $signal->getCategorySignal()->getId() != 5 ) { // 5 random ID
                     $rate = $this->getRateSignal($signal);
                     
                     $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
@@ -195,7 +196,8 @@ public function isUnderMgSize()
                         $api->miseBaisse($conn, $trade);
                     }
                 }
-                else if ((!$this->isAlreadyTrade($signal) && $this->getNbSequenceOpen() <= 2 &&  $this->isUnderMgSize()) || ($this->getNbSequenceOpen() == 0)) {
+                else if ((!$this->tradeRepo->isTrading() && $this->getNbSequenceOpen() <= 1) || ($this->getNbSequenceOpen() == 0)) {
+                    echo "----------Debug --------\n";
                     $rate = $this->getRateSignal($signal);
                     
                     $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
@@ -206,6 +208,7 @@ public function isUnderMgSize()
                     } else {
                         $api->miseBaisse($conn, $trade);
                     }
+                    $this->flag = false;
                 } else
                     echo "-----". $this->getNbSequenceOpen() ." ---Alreay trade identique \n";
                 $signal->setIsTrade(true);
@@ -214,6 +217,14 @@ public function isUnderMgSize()
             $this->sequencesToExclude = Array();
         }
     }
+    public function setFlag($flag) {
+        $this->flag = $flag;
+    }
+    public function getFlag() {
+        return $this->flag;
+    }
+    
+    
     public function getRateSignal(TradeSignal $signal) {
         $symbole = $signal->getSymbole();
         if ($signal->getContractType() == Trade::TYPECALL) {
@@ -312,21 +323,15 @@ public function isUnderMgSize()
             if ($taux == NULL) {
                 $taux = $this->parameter->getDefaultRate();
             }
+
             foreach ($listSequence as $sequence) {
-                if (!$this->tradeRepo->isTrading() && $sequence->getlength() >= $this->parameter->getMartingaleSize() && $idCategSignal != 5) {
-                    echo "------- PAS DANS  la matrinGale SIGNAL MT4 ----------";
-                    $sequence->isFinished($this->tradeRepo);
-                    $this->sequencePersister->persist($sequence);
-                    $this->sequencesToExclude[] = $sequence;
-                    return $this->calcMiseForSequence($sequence, $taux);
-                } else if (!$this->tradeRepo->isTrading() &&  $sequence->getLength() < $this->parameter->getMartingaleSize()) {
                     echo "------- DANS la matrinGale ----------";
                     $sequence->isFinished($this->tradeRepo);
                     $this->sequencePersister->persist($sequence);
                     $this->sequencesToExclude[] = $sequence;
                     return $this->calcMiseForSequence($sequence, $taux);
-                } 
             }
+            echo "\n \n -----------------------new mise init ------------------------------------------------------------ \n";
             return $this->getNewMiseInit();
         }
     }
@@ -469,19 +474,13 @@ public function isUnderMgSize()
             $this->staticWinJoker->resetWin();
             $this->staticWinJokerPersister->persist($this->staticWinJoker);
         }*/
-        /*
-        $joker = $this->jokerRepo->findOneBy(array('state' => Joker::STATEUNUSE));
-        if (!empty($joker) AND $sequence->getLength() == 1) {
-            echo "----------+++JOKER+++---------\n";
+
+        if ($sequence->getLength() == 4) {
+          //  echo "----------+++ CLOSE ALL +++---------\n";
             //init sequence
-            $sequence->setJoker(Sequence::JOKERUSE);
             $sequence->setState(Sequence::CLOSE);
             $this->sequencePersister->persist($sequence);
-            //init joker
-            $joker->setState(Joker::STATEUSE);
-            $this->jokerPersister->persist($joker);
-            $trade->setSequenceState(Trade::SEQSTATEDONE);
-        }  */
+        }  
         $this->tradePersister->persist($trade);
     }
     public function getNewMiseInit() {

@@ -24,8 +24,8 @@ class PortalBinaryCommand extends ContainerAwareCommand
     private $api;
     private $ubAlgo;
     private $tradeSignalPersister;
-    //const APIKEY='hbMdhGGQErEeCXN';
-    const APIKEY='oGrJBdcWE3VPIOQ';
+    const APIKEY='hbMdhGGQErEeCXN';
+    //const APIKEY='oGrJBdcWE3VPIOQ';
     
     
     function __construct(){
@@ -39,7 +39,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
 
 // "app_id": "3008" 3020
         $connector = new Connector($this->loop);  
-        $connector('wss://ws.binaryws.com/websockets/v3?app_id=3008')->then(
+        $connector('wss://ws.binaryws.com/websockets/v3?app_id=3020')->then(
                 function(WebSocket $conn) use ($loop, $apiKey) {
 
 
@@ -52,6 +52,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 // api save new trade
                     $trade = $this->api->saveNewTrade($json);
                     $this->ubAlgo->newTradeFromApi($trade->getId());
+                    $this->ubAlgo->setFlag(true);
                 }
                 if (isset($json['profit_table'])) {
                 // api getLastResult
@@ -88,7 +89,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $this->api->sendPing($conn);
             });*/
 
-            $loop->addPeriodicTimer(3, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(2, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                  $this->api->askLastResult($conn);
             });
@@ -113,8 +114,11 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
                 $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5);
+                $tradeRepo = $this->getContainer()->get('trade_repo');
                 $symbole = $symboleRepo->findOneById(3);
-                 $this->tradeSignalPersister->randomSignal($symbole, $categSignal);
+                if($this->ubAlgo->getFlag() && !$tradeRepo->isTrading()){
+                    $this->tradeSignalPersister->randomSignal($symbole, $categSignal);
+                }
             });
              
              
