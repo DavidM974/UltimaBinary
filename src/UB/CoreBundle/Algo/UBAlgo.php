@@ -55,7 +55,8 @@ class UBAlgo {
     private $staticWinJoker;
     private $sequencesToExclude;
     
-    const DEFAULT_MISE = 0.5;
+    const DEFAULT_MISE = 2;
+    const NB_SEQ = 2;
 
     public function getMiseInitial() {
         return $this->miseInitial;
@@ -171,6 +172,17 @@ public function isUnderMgSize()
     return false;
 }
 
+public function checkSignalRandomTrade(TradeSignal $signal)
+{
+    $listSgnal = Array(5);
+    foreach ($listSgnal as $id) {
+        if($signal->getCategorySignal()->getId() == $id) {
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
     // appeller toutes les secondes pour vérifier les signaux
     public function checkNewSignal($conn, $api) {
         // get the last signal in db
@@ -184,28 +196,18 @@ public function isUnderMgSize()
             foreach ($listSignals as $signal) {
                 echo "signal" . $signal->getId() . " \n";
                 // récupère la prochaine valeur de mise
-                if (!$this->isAlreadyTrade($signal) && $signal->getCategorySignal()->getId() != 5 ) { // 5 random ID
+            if ((!$this->isAlreadyTrade($signal) && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ &&  $this->isUnderMgSize() && $this->checkSignalRandomTrade($signal)) || ($this->getNbSequenceOpen() == 0)) {
                     $rate = $this->getRateSignal($signal);
                     
                     $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
-                    $trade = $this->createNewTradeForApi($signal, $amount);
-                    // new api call with mise to send the trade
-                    if ($trade->getContractType() == Trade::TYPECALL) {
-                        $api->miseHausse($conn, $trade);
-                    } else {
-                        $api->miseBaisse($conn, $trade);
-                    }
-                }
-                else if ((!$this->isAlreadyTrade($signal) && $this->getNbSequenceOpen() <= 2 &&  $this->isUnderMgSize()) || ($this->getNbSequenceOpen() == 0)) {
-                    $rate = $this->getRateSignal($signal);
-                    
-                    $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
-                    $trade = $this->createNewTradeForApi($signal, $amount);
-                    // new api call with mise to send the trade
-                    if ($trade->getContractType() == Trade::TYPECALL) {
-                        $api->miseHausse($conn, $trade);
-                    } else {
-                        $api->miseBaisse($conn, $trade);
+                    if ($amount > 0) {
+                        $trade = $this->createNewTradeForApi($signal, $amount);
+                        // new api call with mise to send the trade
+                        if ($trade->getContractType() == Trade::TYPECALL) {
+                            $api->miseHausse($conn, $trade);
+                        } else {
+                            $api->miseBaisse($conn, $trade);
+                        }
                     }
                 } else
                     echo "-----". $this->getNbSequenceOpen() ." ---Alreay trade identique \n";
@@ -264,7 +266,7 @@ public function isUnderMgSize()
     public function getSequenceForTrade(Trade $trade) {
         //Retourne toutes les sequences ouvertes
         $this->parameter = $this->getLastParameter();
-        $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading();
+        $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading(NULL, $this->parameter->getMartinGaleSize(), $trade->getSymbole());
         if (empty($listSequence)) {
             echo " ------ Pas de sequence Ouverte dispo \n";
             $sequence = $this->sequencePersister->newSequence();
@@ -309,7 +311,8 @@ public function isUnderMgSize()
                 }
             }
         }
-        if (empty($listSequence)) {
+        if (empty($listSequence) && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ - 1) {
+            echo "New mise Init----------- 1 --------- \n";
             return $this->getNewMiseInit();
         } else {
             echo "Sequence non terminee \n";
@@ -322,7 +325,10 @@ public function isUnderMgSize()
                     $this->sequencesToExclude[] = $sequence;
                     return $this->calcMiseForSequence($sequence, $taux);
             }
-            return $this->getNewMiseInit();
+            if ($this->getNbSequenceOpen() <= UBAlgo::NB_SEQ - 1) {
+                echo "New mise Init-------------------- \n";
+                return $this->getNewMiseInit();
+            }
         }
     }
 
