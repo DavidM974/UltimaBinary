@@ -24,8 +24,8 @@ class PortalBinaryCommand extends ContainerAwareCommand
     private $api;
     private $ubAlgo;
     private $tradeSignalPersister;
-    const APIKEY='hbMdhGGQErEeCXN';
-    //const APIKEY='oGrJBdcWE3VPIOQ';
+    //const APIKEY='hbMdhGGQErEeCXN'; REEL !!!!!
+    const APIKEY='oGrJBdcWE3VPIOQ';
     
     
     function __construct(){
@@ -37,9 +37,9 @@ class PortalBinaryCommand extends ContainerAwareCommand
     
     public function mainCore($apiKey, $loop) {
 
-// "app_id": "3008" 3020
+// "app_id": "3008 DEMO" 3020
         $connector = new Connector($this->loop);  
-        $connector('wss://ws.binaryws.com/websockets/v3?app_id=3020')->then(
+        $connector('wss://ws.binaryws.com/websockets/v3?app_id=3008')->then(
                 function(WebSocket $conn) use ($loop, $apiKey) {
 
 
