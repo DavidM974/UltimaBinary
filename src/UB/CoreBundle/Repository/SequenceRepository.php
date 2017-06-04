@@ -29,8 +29,30 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
         return $sequences;
 
     }
+    public function checkSignalRandomTrade($idSignal) {
+        $listSgnal = Array(5);
+        foreach ($listSgnal as $id) {
+            if ($idSignal == $id) {
+                return TRUE;
+            }
+        }
+        return FALSE;
+    }
     
-    public function getOpenSequenceNotTrading($idCategSignal = NULL, $martinG = NULL) {
+        public function checkSymboleRandomTrade($idSymbole) {
+        $listSgnal = Array(3);
+        foreach ($listSgnal as $id) {
+            if ($idSymbole == $id) {
+                return TRUE;
+            }
+        }
+        return FALSE;
+    }
+    
+    
+    
+
+    public function getOpenSequenceNotTrading($idCategSignal = NULL, $martinG = NULL, $symbole = NULL) {
         $subqb = $this->createQueryBuilder('s');
         $subQuery = $subqb->select('s.id')
                 ->innerJoin('s.trades', 'tr')
@@ -49,9 +71,10 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
                 ->setParameter('subQuery', $subQuery)
                 ->andWhere('s.state = :state')
                 ->setParameter('state', 'OPEN');
-        if ($idCategSignal == 5) {
+        if ($this->checkSignalRandomTrade($idCategSignal) || ($symbole != NULL && $this->checkSymboleRandomTrade($symbole->getId()))) {
+            echo "*******************TEST------------------------\n";
             $qb->andWhere('s.length <= :size')
-                ->setParameter('size',($martinG -2));
+                ->setParameter('size',($martinG -1));
         }
                $query = $qb->getQuery();
         return $query->getResult();
