@@ -52,7 +52,6 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 // api save new trade
                     $trade = $this->api->saveNewTrade($json);
                     $this->ubAlgo->newTradeFromApi($trade->getId());
-                    $this->ubAlgo->setFlag(true);
                 }
                 if (isset($json['profit_table'])) {
                 // api getLastResult
@@ -116,8 +115,12 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5);
                 $tradeRepo = $this->getContainer()->get('trade_repo');
                 $symbole = $symboleRepo->findOneById(3);
-                if($this->ubAlgo->getFlag() && !$tradeRepo->isTrading()){
+                $symbole2 = $symboleRepo->findOneById(8);
+                if(!$tradeRepo->isTrading($symbole)){
                     $this->tradeSignalPersister->randomSignal($symbole, $categSignal);
+                }
+                if(!$tradeRepo->isTrading($symbole2)){
+                    $this->tradeSignalPersister->randomSignal($symbole2, $categSignal);
                 }
             });
              
