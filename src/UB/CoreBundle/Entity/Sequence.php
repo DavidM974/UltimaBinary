@@ -5,6 +5,7 @@ namespace UB\CoreBundle\Entity;
 use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use \UB\CoreBundle\Repository\TradeRepository;
+use UB\CoreBundle\Entity\Rope;
 
 /**
  * Sequence
@@ -67,6 +68,13 @@ class Sequence
     * @ORM\OrderBy({"amount" = "ASC"})
     */
     private $trades; 
+    
+    
+    /**
+    * @ORM\ManyToOne(targetEntity="UB\CoreBundle\Entity\Rope", inversedBy = "sequences")
+    * @ORM\JoinColumn(nullable=true)
+    */
+    private $rope;
 
     
     public function __construct()
@@ -85,6 +93,32 @@ class Sequence
         return $this->id;
     }
 
+    
+    /**
+     * Set rope
+     *
+     * @param Rope $rope
+     *
+     * @return Trade
+     */
+    public function setRope(Rope $rope)
+    {
+        $this->rope = $rope;
+        return $this;
+    }
+
+    /**
+     * Get rope
+     *
+     * @return Rope
+     */
+    public function getRope()
+    {
+        return $this->rope;
+    }
+    
+    
+    
     /**
      * Set length
      *
