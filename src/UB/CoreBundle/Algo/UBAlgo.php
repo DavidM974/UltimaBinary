@@ -55,8 +55,8 @@ class UBAlgo {
     private $staticWinJoker;
     private $sequencesToExclude;
     
-    const DEFAULT_MISE = 2;
-    const NB_SEQ = 2;
+    const DEFAULT_MISE = 0.5;
+    const NB_SEQ = 3;
 
     public function getMiseInitial() {
         return $this->miseInitial;
@@ -174,7 +174,7 @@ public function isUnderMgSize()
 
 public function checkSignalRandomTrade(TradeSignal $signal)
 {
-    $listSgnal = Array(5);
+    $listSgnal = Array(5,26);
     foreach ($listSgnal as $id) {
         if($signal->getCategorySignal()->getId() == $id) {
             return TRUE;
@@ -209,7 +209,22 @@ public function checkSignalRandomTrade(TradeSignal $signal)
                             $api->miseBaisse($conn, $trade);
                         }
                     }
-                } else
+                } // permet  de prendes les signaux en dehors de la martin G avec les signaux pour cloturer la sequence
+               else if (!$this->isAlreadyTrade($signal) && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ && !$this->checkSignalRandomTrade($signal)) {
+                    $rate = $this->getRateSignal($signal);
+                    
+                    $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
+                    if ($amount > 0) {
+                        $trade = $this->createNewTradeForApi($signal, $amount);
+                        // new api call with mise to send the trade
+                        if ($trade->getContractType() == Trade::TYPECALL) {
+                            $api->miseHausse($conn, $trade);
+                        } else {
+                            $api->miseBaisse($conn, $trade);
+                        }
+                    }
+                } 
+                else
                     echo "-----". $this->getNbSequenceOpen() ." ---Alreay trade identique \n";
                 $signal->setIsTrade(true);
                 $this->tradeSignalPersister->persist($signal);
@@ -237,7 +252,7 @@ public function checkSignalRandomTrade(TradeSignal $signal)
     public function getBestRate($rate) {
         switch (true) {
             case ($rate >= 0.86):
-            $res = 0.85;
+            $res = 0.80;
             break;
             case ($rate >= 0.80 and $rate < 0.86):
             $res = 0.75;
@@ -422,8 +437,8 @@ public function checkSignalRandomTrade(TradeSignal $signal)
         $trades =  $this->tradeRepo->getLooseTrades($sequence);
 
         foreach ($trades as $tradeMg) {
-            echo $tradeMg->getSequenceState();
-            echo $res. " <- Res - tradeAmount : ". $tradeMg->getAmount()." -- \n"; 
+           // echo $tradeMg->getSequenceState();
+           // echo $res. " <- Res - tradeAmount : ". $tradeMg->getAmount()." -- \n"; 
             if ($tradeMg->getState() == Trade::STATELOOSE && $tradeMg->getAmount() < $res) {
                 echo "Sequence done ".$tradeMg->getId()."\n";
                 $tradeMg->setSequenceState(Trade::SEQSTATEDONE);

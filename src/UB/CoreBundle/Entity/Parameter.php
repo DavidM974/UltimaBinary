@@ -91,6 +91,13 @@ class Parameter
      * @ORM\Column(name="state", type="boolean")
      */
     private $state;
+    
+     /**
+     * @var int
+     *
+     * @ORM\Column(name="tendance", type="integer")
+     */
+    private $tendance;
 
     /**
      * @var int
@@ -380,6 +387,30 @@ class Parameter
     public function getState()
     {
         return $this->state;
+    }
+    
+    /**
+     * Set tendance
+     *
+     * @param integer $tendance
+     *
+     * @return Parameter
+     */
+    public function setTendance($tendance)
+    {
+        $this->tendance = $tendance;
+
+        return $this;
+    }
+
+    /**
+     * Get tendance
+     *
+     * @return int
+     */
+    public function getTendance()
+    {
+        return $this->tendance;
     }
 
     /**

@@ -61,4 +61,24 @@ class TradeSignalPersister
             $this->persist($signal);
 
     }
+    
+    
+    public function tendanceSignal($symbole, $categSignal, $tendance)
+    {
+        $signal = new TradeSignal();
+        $signal->setSymbole($symbole);
+        $signal->setStartTime(new \DateTime());
+        $signal->setDuration(1);
+        $signal->setIsTrade(0);
+        $signal->setCategorySignal($categSignal);
+        $signal->setName($categSignal->getName());
+        
+        if ($tendance == 1)
+        {
+            $signal->setContractType('CALL');
+        } else if($tendance == 0){
+            $signal->setContractType('PUT');
+        }
+        $this->persist($signal);
+    }
 }

@@ -96,9 +96,23 @@ class PortalBinaryCommand extends ContainerAwareCommand
             $loop->addPeriodicTimer(1, function(Timer $timer) use ($conn) {
                 // vérifier si il y a un nouveau signal dans la bdd
                 $this->ubAlgo->checkNewSignal($conn, $this->api);
+                
+                $symboleRepo = $this->getContainer()->get('symbole_repo');
+                $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5); // récupérer le bon symbole EURUSD ?
+                $parameterRepo = $this->getContainer()->get('parameter_repo');
+                $parameter = $parameterRepo->findOneById(1);
+                $symbole = $symboleRepo->findOneById(9);
+                if(date("s") == "59" and $parameterRepo->findOneById(1)->getTendance() != -1) {
+                    
+                    echo "TENDNANCE -> ".$parameterRepo->findOneById(1)->getTendance() . "\n";
+                 $this->tradeSignalPersister->tendanceSignal($symbole, $categSignal, $parameter->getTendance());
+                }
+                
+            $entityManager = $this->getContainer()->get('doctrine')->getEntityManager();
+            $entityManager->detach($parameter);
             });
             
-            $loop->addPeriodicTimer(500, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(40, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
                 $listSymbol = $symboleRepo->findAll();
@@ -108,7 +122,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 }
             });
             
-          
+          /*
             $loop->addPeriodicTimer(80, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
@@ -117,7 +131,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                  $this->tradeSignalPersister->randomSignal($symbole, $categSignal);
             });
              
-            
+            */
             $conn->on('close', function($code = null, $reason = null) use ($loop) {
                 print "Connection closed ({$code} - {$reason})\n";
                 $loop->stop();
