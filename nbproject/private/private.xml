@@ -9,6 +9,7 @@
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Entity/Symbole.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/app/config/config.yml</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Repository/SequenceRepository.php</file>
+            <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Persister/SequencePersister.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Entity/Sequence.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Persister/TradeSignalPersister.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Command/PortalBinaryCommand.php</file>

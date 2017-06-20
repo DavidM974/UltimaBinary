@@ -73,8 +73,7 @@ services:
             - "@sequence_repo"
             - "@joker_repo"
             - "@static_win_joker_repo"
-            - %algo.proba%
-            - %algo.nbSequence%
+            - "@doctrine.orm.entity_manager"
             
     ub_core.trade_persister:
         class: UB\CoreBundle\Persister\TradePersister

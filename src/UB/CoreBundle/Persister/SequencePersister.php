@@ -24,10 +24,13 @@ class SequencePersister
         $this->sequenceRepo = $sequenceRepo;
     }
     
-    public function newSequence() {
+    public function newSequence($LengthTrinity) {
         $sequence = new Sequence();
         $sequence->setLength(0);
         $sequence->setState(Sequence::OPEN);
+        $sequence->setMode(Sequence::MG);
+        $sequence->setPosition(0);
+        $sequence->setLengthTrinity($LengthTrinity);
         $sequence->setTimeStart(new \DateTime());
         $this->persist($sequence);
         return $sequence;

@@ -39,9 +39,9 @@ class Parameter
     /**
      * @var int
      *
-     * @ORM\Column(name="jokerSize", type="integer")
+     * @ORM\Column(name="infinity_size", type="integer")
      */
-    private $jokerSize;
+    private $infinitySize;
 
     /**
      * @var \DateTime
@@ -198,27 +198,27 @@ class Parameter
     }
 
     /**
-     * Set jokerSize
+     * Set infinitySize
      *
-     * @param integer $jokerSize
+     * @param integer $infinitySize
      *
      * @return Parameter
      */
-    public function setJokerSize($jokerSize)
+    public function setInfinitySize($infinitySize)
     {
-        $this->jokerSize = $jokerSize;
+        $this->infinitySize = $infinitySize;
 
         return $this;
     }
 
     /**
-     * Get jokerSize
+     * Get infinitySize
      *
      * @return int
      */
-    public function getJokerSize()
+    public function getInfinitySize()
     {
-        return $this->jokerSize;
+        return $this->infinitySize;
     }
 
     /**

@@ -88,7 +88,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $this->api->sendPing($conn);
             });*/
 
-            $loop->addPeriodicTimer(20, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(15, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                  $this->api->askLastResult($conn);
             });
@@ -96,7 +96,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
             $loop->addPeriodicTimer(1, function(Timer $timer) use ($conn) {
                 // vérifier si il y a un nouveau signal dans la bdd
                 $this->ubAlgo->checkNewSignal($conn, $this->api);
-                
+                /*
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
                 $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5); // récupérer le bon symbole EURUSD ?
                 $parameterRepo = $this->getContainer()->get('parameter_repo');
@@ -109,29 +109,29 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 }
                 
             $entityManager = $this->getContainer()->get('doctrine')->getEntityManager();
-            $entityManager->detach($parameter);
+            $entityManager->detach($parameter);*/
             });
             
-            $loop->addPeriodicTimer(40, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(25, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
-                $listSymbol = $symboleRepo->findAll();
+                $listSymbol = $symboleRepo->findById(9);
                 foreach ($listSymbol as $symbol) {
                     $this->api->UpdateRate($conn, 'CALL', $symbol->getName());
                     $this->api->UpdateRate($conn, 'PUT', $symbol->getName());
                 }
             });
             
-          /*
-            $loop->addPeriodicTimer(80, function(Timer $timer) use ( $conn) {
+          
+            $loop->addPeriodicTimer(20, function(Timer $timer) use ( $conn) {
                 // api askLastResult
-                $symboleRepo = $this->getContainer()->get('symbole_repo');
-                $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5);
-                $symbole = $symboleRepo->findOneById(3);
-                 $this->tradeSignalPersister->randomSignal($symbole, $categSignal);
+                    $symboleRepo = $this->getContainer()->get('symbole_repo');
+                    $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5);
+                    $symbole = $symboleRepo->findOneById(9); // 9 EURUSD /  3 VOL-25
+                    $this->tradeSignalPersister->randomSignal($symbole, $categSignal);
             });
              
-            */
+            
             $conn->on('close', function($code = null, $reason = null) use ($loop) {
                 print "Connection closed ({$code} - {$reason})\n";
                 $loop->stop();
@@ -160,11 +160,11 @@ class PortalBinaryCommand extends ContainerAwareCommand
     protected function interact(InputInterface $input, OutputInterface $output)
     {
     }
- 
+    
     protected function execute(InputInterface $input, OutputInterface $output)
     {
          $output->writeln([
-        'Lancement de la commande Ulima Binary',
+        'Lancement de la commande Ultima Binary V1',
         '============',
         '',
     ]);

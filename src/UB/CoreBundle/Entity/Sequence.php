@@ -17,8 +17,8 @@ class Sequence
     const OPEN = 'OPEN';
     const CLOSE = 'CLOSE';
     const PAUSE = 'PAUSE';
-    const JOKERNOTUSE = 'NOTUSE';
-    const JOKERUSE = 'USE';
+    const MG = 'MG';
+    const TRINITY = 'TRINITY';
     /**
      * @var int
      *
@@ -45,9 +45,9 @@ class Sequence
     /**
      * @var string
      *
-     * @ORM\Column(name="joker", type="string" , columnDefinition="ENUM('NOTUSE', 'USE')")
+     * @ORM\Column(name="mode", type="string" , columnDefinition="ENUM('MG', 'TRINITY')")
      */
-    private $joker;
+    private $mode;
     /**
      * @var \DateTime
      *
@@ -66,8 +66,51 @@ class Sequence
     * @ORM\OneToMany(targetEntity="UB\CoreBundle\Entity\Trade", mappedBy="sequence", fetch="EAGER")
     * @ORM\OrderBy({"amount" = "ASC"})
     */
-    private $trades; 
+    private $trades;
+    
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="length_trinity", type="smallint", nullable=true)
+     */
+    private $lengthTrinity;   
 
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="position", type="smallint", nullable=true)
+     */
+    private $position;
+    
+    
+    /**
+     * @var float
+     *
+     * @ORM\Column(name="sum_loose_tr", type="float", nullable=true)
+     */
+    private $sumLooseTR;
+    
+    /**
+     * @var float
+     *
+     * @ORM\Column(name="sum_win_tr", type="float", nullable=true)
+     */
+    private $sumWinTR;
+    
+    /**
+     * @var float
+     *
+     * @ORM\Column(name="profit", type="float", nullable=true)
+     */
+    private $profit;
+    
+    
+     /**
+     * @var float
+     *
+     * @ORM\Column(name="mise", type="float", nullable=true)
+     */
+    private $mise;
     
     public function __construct()
     {
@@ -134,27 +177,27 @@ class Sequence
     }
 
     /**
-     * Set joker
+     * Set mode
      *
-     * @param string $joker
+     * @param string $mode
      *
      * @return Sequence
      */
-    public function setJoker($joker)
+    public function setMode($mode)
     {
-        $this->joker = $joker;
+        $this->mode = $mode;
 
         return $this;
     }
 
     /**
-     * Get joker
+     * Get mode
      *
      * @return string
      */
-    public function getJoker()
+    public function getMode()
     {
-        return $this->joker;
+        return $this->mode;
     }
     
     /**
@@ -343,6 +386,152 @@ class Sequence
             $trade->win();
         }
     }
+    
+    
+     /**
+     * Set lengthTrinity
+     *
+     * @param integer $lengthTrinity
+     *
+     * @return Sequence
+     */
+    public function setLengthTrinity($lengthTrinity)
+    {
+        $this->lengthTrinity = $lengthTrinity;
+
+        return $this;
+    }
+
+    /**
+     * Get lengthTrinity
+     *
+     * @return int
+     */
+    public function getLengthTrinity()
+    {
+        return $this->lengthTrinity;
+    }
+ 
+     /**
+     * Set position
+     *
+     * @param integer $position
+     *
+     * @return Sequence
+     */
+    public function setPosition($position)
+    {
+        $this->position = $position;
+
+        return $this;
+    }
+
+    /**
+     * Get position
+     *
+     * @return int
+     */
+    public function getPosition()
+    {
+        return $this->position;
+    }
+
+     /**
+     * Set sumLooseTR
+     *
+     * @param integer $sumLooseTR
+     *
+     * @return Sequence
+     */
+    public function setSumLooseTR($sumLooseTR)
+    {
+        $this->sumLooseTR = $sumLooseTR;
+
+        return $this;
+    }
+
+    /**
+     * Get sumLooseTR
+     *
+     * @return float
+     */
+    public function getSumLooseTR()
+    {
+        return $this->sumLooseTR;
+    }
+    
+    /**
+     * Set sumWinTR
+     *
+     * @param integer $sumWinTR
+     *
+     * @return Sequence
+     */
+    public function setSumWinTR($sumWinTR)
+    {
+        $this->sumWinTR = $sumWinTR;
+
+        return $this;
+    }
+
+    /**
+     * Get sumWinTR
+     *
+     * @return float
+     */
+    public function getSumWinTR()
+    {
+        return $this->sumWinTR;
+    }
+    
+     /**
+     * Set profit
+     *
+     * @param integer $profit
+     *
+     * @return Sequence
+     */
+    public function setProfit($profit)
+    {
+        $this->profit = $profit;
+
+        return $this;
+    }
+
+    /**
+     * Get profit
+     *
+     * @return int
+     */
+    public function getProfit()
+    {
+        return $this->profit;
+    }
+    
+     /**
+     * Set mise
+     *
+     * @param integer $mise
+     *
+     * @return Sequence
+     */
+    public function setMise($mise)
+    {
+        $this->mise = $mise;
+
+        return $this;
+    }
+
+    /**
+     * Get mise
+     *
+     * @return int
+     */
+    public function getMise()
+    {
+        return $this->mise;
+    }
+ 
 
 }
 

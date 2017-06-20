@@ -90,7 +90,7 @@ class BinaryApi implements ApiInterface {
             $taux = floor(($payout - $mise) / ($mise / 100));
 
             // checker si trade existant sinon j'enregistre
-           $trade =  $this->tradeRepo->findOneBy(array('idBinary' => $transaction_id));
+           $trade =  $this->tradeRepo->findOneBy(array('idBinary' => $transaction_id, 'state' => Trade::STATETRADE));
            if ($trade != NULL) {
                
                if ($res > 0) {
@@ -106,7 +106,7 @@ class BinaryApi implements ApiInterface {
                $this->tradePersister->persist($trade);
            } else {
                //todo créer le trade 
-               echo "trade non existant ----------- \n";
+               //echo "trade non existant ou traiter ----------- \n";
            }
         }
         return $tabTread;
