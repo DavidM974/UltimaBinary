@@ -24,13 +24,15 @@ class SequencePersister
         $this->sequenceRepo = $sequenceRepo;
     }
     
-    public function newSequence($LengthTrinity) {
+    public function newSequence($LengthTrinity, $newSumLoose) {
         $sequence = new Sequence();
         $sequence->setLength(0);
         $sequence->setState(Sequence::OPEN);
-        $sequence->setMode(Sequence::MG);
+        $sequence->setMode(Sequence::TRINITY);
         $sequence->setPosition(0);
+        $sequence->setMultiWin(0);
         $sequence->setLengthTrinity($LengthTrinity);
+        $sequence->setSumLooseTR($newSumLoose);
         $sequence->setTimeStart(new \DateTime());
         $this->persist($sequence);
         return $sequence;

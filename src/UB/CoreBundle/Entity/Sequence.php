@@ -82,6 +82,13 @@ class Sequence
      */
     private $position;
     
+     /**
+     * @var int
+     *
+     * @ORM\Column(name="multiWin", type="smallint", nullable=true)
+     */
+    private $multiWin;
+    
     
     /**
      * @var float
@@ -435,6 +442,32 @@ class Sequence
     {
         return $this->position;
     }
+    
+    
+
+     /**
+     * Set multiWin
+     *
+     * @param integer $multiWin
+     *
+     * @return Sequence
+     */
+    public function setMultiWin($multiWin)
+    {
+        $this->multiWin = $multiWin;
+
+        return $this;
+    }
+
+    /**
+     * Get multiWin
+     *
+     * @return int
+     */
+    public function getMultiWin()
+    {
+        return $this->multiWin;
+    }   
 
      /**
      * Set sumLooseTR

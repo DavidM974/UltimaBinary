@@ -34,7 +34,7 @@ class TradeSignalPersister
     }
     
     
-    public function randomSignal($symbole, $categSignal)
+    public function randomSignal($symbole, $categSignal, \UB\CoreBundle\Entity\Trade $trade)
     {
     $tradeSignal = $this->tradeSignalRepo->getLastEntity();
         $signal = new TradeSignal();
@@ -45,7 +45,7 @@ class TradeSignalPersister
         $signal->setCategorySignal($categSignal);
         $signal->setName($categSignal->getName());
         
-        if ($tradeSignal->getContractType() == 'PUT')
+        if ($trade->getContractType() == 'PUT')
         {
             $signal->setContractType('CALL');
         } else {

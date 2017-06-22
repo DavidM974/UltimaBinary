@@ -29,6 +29,15 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
         return $trades;
 
     }
+    
+    function getLastTrade() {
+        return $this->createQueryBuilder('t')
+                        ->orderBy('t.signalTime', 'DESC')
+                        ->setMaxResults(1)
+                        ->getQuery() 
+                        ->getOneOrNullResult();
+    }
+
     public function getUndoneTrade($sequence) {
          $qb = $this->createQueryBuilder('tr');
  

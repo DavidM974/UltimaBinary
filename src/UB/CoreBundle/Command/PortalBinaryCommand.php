@@ -127,8 +127,10 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 // api askLastResult
                     $symboleRepo = $this->getContainer()->get('symbole_repo');
                     $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5);
+                    $tradeRepo = $this->getContainer()->get('trade_repo');
+                   
                     $symbole = $symboleRepo->findOneById(9); // 9 EURUSD /  3 VOL-25
-                    $this->tradeSignalPersister->randomSignal($symbole, $categSignal);
+                    $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade());
             });
              
             
