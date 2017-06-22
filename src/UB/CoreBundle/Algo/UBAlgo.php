@@ -484,6 +484,8 @@ class UBAlgo {
         
         if ($sequence->getMultiWin() == 3) {
             $this->initTrinity($sequence);
+            $sequence->setMultiWin(0);
+            $this->sequencePersister->persist($sequence);
         }
     }
     
@@ -491,6 +493,8 @@ class UBAlgo {
         if($sequence->getMultiWin() == 2 && $sequence->getMise() >= ($this->parameter->getBalance() * 0.05)) {
             echo "\n ---- MODE ORANGE ----  \n";
             $this->initTrinity($sequence);
+            $sequence->setMultiWin(0);
+            $this->sequencePersister->persist($sequence);
             return true;
         }
          echo "\n ---- PAS ORANGE ----  \n";
@@ -511,7 +515,6 @@ class UBAlgo {
         $sequence->setPosition(0);
         $sequence->setSumLooseTR($sequence->getSumLooseTR() - $sequence->getSumWinTR());
         $sequence->setSumWinTR(0);
-        $sequence->setMultiWin(0);
         $sequence->setMise(round($sequence->getSumLooseTR() / $sequence->getLengthTrinity(), 2));
         if ($sequence->getMise() < 0.4) {
             $sequence->setMise(0.4);
