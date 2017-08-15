@@ -106,16 +106,19 @@ class PortalBinaryCommand extends ContainerAwareCommand
                     
                     echo "TENDNANCE -> ".$parameterRepo->findOneById(1)->getTendance() . "\n";
                  $this->tradeSignalPersister->tendanceSignal($symbole, $categSignal, $parameter->getTendance());
+                } else {
+                    $tradeRepo = $this->getContainer()->get('trade_repo');
+                    $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade());
                 }
                 
             $entityManager = $this->getContainer()->get('doctrine')->getEntityManager();
             $entityManager->detach($parameter);*/
             });
             
-            $loop->addPeriodicTimer(25, function(Timer $timer) use ( $conn) {
-                // api askLastResult
+            $loop->addPeriodicTimer(300, function(Timer $timer) use ( $conn) {
+                // Mise à jours du taux des differentes devises
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
-                $listSymbol = $symboleRepo->findById(9);
+                $listSymbol = $symboleRepo->findAll();
                 foreach ($listSymbol as $symbol) {
                     $this->api->UpdateRate($conn, 'CALL', $symbol->getName());
                     $this->api->UpdateRate($conn, 'PUT', $symbol->getName());
@@ -123,14 +126,16 @@ class PortalBinaryCommand extends ContainerAwareCommand
             });
             
           
-            $loop->addPeriodicTimer(20, function(Timer $timer) use ( $conn) {
-                // api askLastResult
+            $loop->addPeriodicTimer(10, function(Timer $timer) use ( $conn) {
+                // create radom signal  in green mode
+                if(!$this->ubAlgo->isModeOrange($this->ubAlgo->getSequenceOpen())) {
                     $symboleRepo = $this->getContainer()->get('symbole_repo');
-                    $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5);
+                    $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(3);
                     $tradeRepo = $this->getContainer()->get('trade_repo');
                    
-                    $symbole = $symboleRepo->findOneById(9); // 9 EURUSD /  3 VOL-25
+                    $symbole = $symboleRepo->findOneById(3); // 9 EURUSD /  3 VOL-25
                     $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade());
+                }
             });
              
             

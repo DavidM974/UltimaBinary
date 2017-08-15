@@ -19,6 +19,7 @@ class Sequence
     const PAUSE = 'PAUSE';
     const MG = 'MG';
     const TRINITY = 'TRINITY';
+    const THEOPHILE = 'THEOPHILE';
     /**
      * @var int
      *
@@ -45,7 +46,7 @@ class Sequence
     /**
      * @var string
      *
-     * @ORM\Column(name="mode", type="string" , columnDefinition="ENUM('MG', 'TRINITY')")
+     * @ORM\Column(name="mode", type="string" , columnDefinition="ENUM('MG', 'TRINITY', 'THEOPHILE')")
      */
     private $mode;
     /**

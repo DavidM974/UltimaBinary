@@ -120,7 +120,7 @@ class UBAlgo {
         $trade->setSequence($sequence);
         // Mise à jours de l'etat du trade Martin gale ou pas 
         $this->setSequenceStateTradeAlgo($sequence, $trade);
-
+            
         $this->tradePersister->persist($trade);
         $this->entityManager->detach($this->parameter);
     }
@@ -188,6 +188,15 @@ class UBAlgo {
             return $sequence->getMode();
         }
     }
+    
+    public function getSequenceOpen() {
+        // récupre le mode de la sequence en cours
+        $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading();
+        foreach ($listSequence as $sequence) {
+            return $sequence;
+        }
+        return NULL;
+    }
 
     public function isTradingFinish() {
         $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading();
@@ -211,8 +220,7 @@ class UBAlgo {
             foreach ($listSignals as $signal) {
 
                 // récupère la prochaine valeur de mise
-               /*
-                 if (($this->isUnderMgSize() && $this->getModeSequence() == Sequence::MG && $this->isTradingFinish() && !$this->parameter->getIsActiveM1())) {
+                if (($this->isUnderMgSize() && $this->getModeSequence() == Sequence::MG && $this->isTradingFinish() && !$this->parameter->getIsActiveM1()) || ($this->getNbSequenceOpen() == 0)) {
                     $rate = $this->getRateSignal($signal);
                     echo "MODE MARTIN G !!!!!!!!!!!!!!!!!!!!! \n";
                     $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
@@ -223,31 +231,42 @@ class UBAlgo {
                         $trade = $this->createNewTradeForApi($signal, $amount);
                         // new api call with mise to send the trade
                         $this->parameter->setIsActiveM1(true);
-                        $this->parameterPersister->persist($this->parameter);
-                        $this->entityManager->detach($this->parameter);
-                        if ($trade->getContractType() == Trade::TYPECALL) {
-                            $api->miseHausse($conn, $trade);
-                        } else {
-                            $api->miseBaisse($conn, $trade);
-                        }
+                        $this->doMise($trade, $conn, $api);
                     }
-                } // permet  de prendes les signaux en dehors de la martin G avec les signaux pour cloturer la sequence
-                else*/ 
-                if (($this->getModeSequence() == Sequence::TRINITY && $this->isTradingFinish() && !$this->parameter->getIsActiveM1() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || ($this->getNbSequenceOpen() == 0)) {
-                    $rate = $this->getRateSignal($signal);
-                    echo "MODE INFINITY !!!!!!!!!!!!!!!!!!!!! \n";
-                    $amount = $this->getNextMiseTR($this->getBestRate($rate));
+                }
+                else if(($this->getModeSequence() == Sequence::THEOPHILE && $this->isTradingFinish() && !$this->parameter->getIsActiveM1() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ)) {
+                                        $rate = $this->getRateSignal($signal);
+                    echo "MODE THEOPHILE!!!!!!!!!!! \n";
+                    $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
+                    echo $amount." mise a ratrapper \n";      
                     if ($amount > 0) {
+
                         $trade = $this->createNewTradeForApi($signal, $amount);
                         // new api call with mise to send the trade
-                        //$this->parameter->setIsActiveM1(true);
-                        $this->parameterPersister->persist($this->parameter);
-                        $this->entityManager->detach($this->parameter);
-                        if ($trade->getContractType() == Trade::TYPECALL) {
-                            $api->miseHausse($conn, $trade);
-                        } else {
-                            $api->miseBaisse($conn, $trade);
-                        }
+                        $this->parameter->setIsActiveM1(true);
+                        $this->doMise($trade, $conn, $api);
+                    }
+                }
+               else if (($this->getModeSequence() == Sequence::TRINITY && $this->isTradingFinish() && !$this->parameter->getIsActiveM1() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ)) {
+                    $rate = $this->getRateSignal($signal);
+                    $sequence = $this->getSequenceOpen();
+                    if ($this->isModeOrange($sequence)) { echo "MODE ORANGE  !!!!!!!!!!!!!!!!!!!!! DEVISE ->".$signal->getSymbole()->getId()." \n"; }
+                    $amount = $this->getNextMiseTR($this->getBestRate($rate));
+                    
+                    
+                    if ($sequence == NULL){
+                        $trade = $this->createNewTradeForApi($signal, $amount);
+                        $this->doMise($trade, $conn, $api);
+                    }
+                    else if ($amount > 0 && $this->isModeOrange($sequence) && $signal->getSymbole()->getId() != 3) { // ici 3 = R_25
+                        
+                        // new api call with mise to send the trade
+                        $trade = $this->createNewTradeForApi($signal, $amount);
+                        $this->doMise($trade, $conn, $api);
+                    }else if ($amount > 0 && !$this->isModeOrange($sequence)) {
+                        // new api call with mise to send the trade
+                        $trade = $this->createNewTradeForApi($signal, $amount);
+                        $this->doMise($trade, $conn, $api);
                     }
                 } else {
                     if (!$this->isTradingFinish())
@@ -259,6 +278,16 @@ class UBAlgo {
                 $this->tradeSignalPersister->persist($signal);
             }
             $this->sequencesToExclude = Array();
+        }
+    }
+    
+    public function doMise(Trade $trade, $conn, $api) {
+        $this->parameterPersister->persist($this->parameter);
+        $this->entityManager->detach($this->parameter);
+        if ($trade->getContractType() == Trade::TYPECALL) {
+            $api->miseHausse($conn, $trade);
+        } else {
+            $api->miseBaisse($conn, $trade);
         }
     }
 
@@ -283,10 +312,10 @@ class UBAlgo {
     public function getBestRate($rate) {
         switch (true) {
             case ($rate >= 0.86):
-                $res = 0.77;
+                $res = 0.84;
                 break;
             case ($rate >= 0.80 and $rate < 0.86):
-                $res = 0.75;
+                $res = 0.77;
                 break;
             case ($rate >= 0.70 and $rate < 0.80):
                 $res = 0.65;
@@ -309,7 +338,7 @@ class UBAlgo {
     }
     
     public function getMiseStartToRecup() {
-        return round($this->parameter->getBalance()/200,2);
+        return 2.5;//round($this->parameter->getBalance()/200,2);
     }
 
     public function getSequenceForTrade(Trade $trade) {
@@ -342,6 +371,7 @@ class UBAlgo {
         $parameter = $this->parameterRepo->findOneBy(array('id' => Parameter::DEFAULT_ID));
 
         $trade = new Trade();
+        if ($amount < 0.5) $amount = 0.5;
         $trade->setAmount($amount);
         $trade->setSymbole($signal->getSymbole());
         $trade->setDuration($signal->getDuration());
@@ -407,7 +437,10 @@ class UBAlgo {
         if ($sequence->getMode() == Sequence::MG) {
             echo"MG Active \n";
             $mise = $this->calcMgMise($sequence, $taux);
-        } else {
+        } else if ($sequence->getMode() == Sequence::THEOPHILE){
+            echo"THEOPHILE  Active " . $sequence->getId() . "\n";
+            $mise = $this->calcTpMise($sequence, $taux);
+        } else  {
             echo"INFINITY  Active " . $sequence->getId() . "\n";
             $mise = $this->calcMise($taux, $sequence->getMise());
         }
@@ -449,7 +482,7 @@ class UBAlgo {
             $sequence->setSumWinTR(0);
             $sequence->setMise(round($sequence->getSumLooseTR() / $sequence->getLengthTrinity(), 2));
             if ($sequence->getMise() < 0.4) {
-                $sequence->setMise(0.4);
+                $sequence->setMise(0.45);
             }
             $this->sequencePersister->persist($sequence);
         }
@@ -460,7 +493,9 @@ class UBAlgo {
         // voir cette partie pour les benefices
         if ($sequence->getMode() == Sequence::MG) {
             $this->winMG($trade, $sequence);
-        } else if ($sequence->getMode() == Sequence::TRINITY) {
+        } else if ($sequence->getMode() == Sequence::THEOPHILE) {
+            $this->winTp($trade, $sequence);
+        }else if ($sequence->getMode() == Sequence::TRINITY) {
             $sequence->setMultiWin($sequence->getMultiWin()+1);
             $this->winTR($trade, $sequence);
             $this->isLastTR($sequence);
@@ -473,11 +508,12 @@ class UBAlgo {
     public function winTR(Trade $trade, Sequence $sequence) {
         $sumWinTR = $sequence->getSumWinTR();
         $sequence->setSumWinTR($this->floorDec($sumWinTR + $this->calcSumCatchUp($trade, $sequence)));
-        if ($sequence->getSumWinTR() > $sequence->getSumLooseTR()) {
+        if (($sequence->getSumWinTR() + $sequence->getProfit()) > $sequence->getSumLooseTR()) {
             $sequence->setSumLooseTR(0);
             $sequence->setState(Sequence::CLOSE);
             $this->sequencePersister->persist($sequence);
         }
+        
         $this->modeRouge($sequence);
         $this->modeOrange($sequence);
         
@@ -493,7 +529,6 @@ class UBAlgo {
         if($sequence->getMultiWin() == 2 && $sequence->getMise() >= ($this->parameter->getBalance() * 0.05)) {
             echo "\n ---- MODE ORANGE ----  \n";
             $this->initTrinity($sequence);
-            $sequence->setMultiWin(0);
             $this->sequencePersister->persist($sequence);
             return true;
         }
@@ -501,6 +536,12 @@ class UBAlgo {
         return false;
     }
     
+    public function isModeOrange(Sequence $sequence = NULL) {
+         if($sequence != NULL && $sequence->getMise() >= ($this->parameter->getBalance() * 0.05)) {
+             return true;
+         }
+         return false;
+    }
     public function modeRouge(Sequence $sequence) {
         if($sequence->getMultiWin() == 1 && $sequence->getMise() >= ($this->parameter->getBalance() * 0.1)) {
             echo "\n ---- MODE ROUGE ----  \n";
@@ -517,7 +558,7 @@ class UBAlgo {
         $sequence->setSumWinTR(0);
         $sequence->setMise(round($sequence->getSumLooseTR() / $sequence->getLengthTrinity(), 2));
         if ($sequence->getMise() < 0.4) {
-            $sequence->setMise(0.4);
+            $sequence->setMise(0.45);
         }
         $this->sequencePersister->persist($sequence);
     }
@@ -535,7 +576,32 @@ class UBAlgo {
     public function floorDec($nb) {
         return floor($nb * 100) / 100;
     }
+    public function winTp(Trade $trade, Sequence $sequence) {
+        if ($sequence->getSumWin() > $sequence->getSumLoose()) {
+            echo "Sum win > sum loose Close Seq\n";
+            $sequence->initTradeWin($this->tradeRepo);
+            $sequence->isFinished();
+            $this->sequencePersister->persist($sequence);
+            if ($sequence->getLength() == 1) {
+                $this->checkJoker();
+            }
+            return;
+        }
 
+         if ($sequence->getLength() > 1 && $trade->getAmountRes() >= $sequence->getNextAmountSequence($this->tradeRepo)) {
+            echo "Maj Trade non ratrape dans sequence X2 \n";
+            $undoneTrade = $sequence->getNextUndoneTrade($this->tradeRepo);
+            $undoneTrade->setSequenceState(Trade::SEQSTATEDONE);
+            $this->tradePersister->persist($undoneTrade);
+            $undoneTrade2 = $sequence->getNextUndoneTrade($this->tradeRepo);
+            $undoneTrade2->setSequenceState(Trade::SEQSTATEDONE);
+            $this->tradePersister->persist($undoneTrade2);
+        } else { // rien a rattraper dans cette sequence
+            echo "Rien a rattraper sequence Close\n";
+            // vérifier si aucune autre sequence ouverte pour joker
+            //$this->checkJoker();
+        }
+    }
     public function winMG(Trade $trade, Sequence $sequence) {
         if ($sequence->getSumWin() > $sequence->getSumLoose()) {
             echo "Sum win > sum loose Close Seq\n";
@@ -622,11 +688,13 @@ class UBAlgo {
         $sequence = $trade->getSequence();
 
         if ($sequence->getLength() == $this->parameter->getMartingaleSize()) {
-            $amount = round($this->getSumToRecup($sequence), 2);
-            $sequence->setMode(Sequence::TRINITY);
-            $sequence->setSumLooseTR($amount);
+            
+            $sequence->setMode(Sequence::THEOPHILE);
+            /* cade a mettre dans le basculement en mode trinity
+             * $amount = round($this->getSumToRecup($sequence), 2);
+             * $sequence->setSumLooseTR($amount);
             $sequence->setMise(round($amount / $sequence->getLengthTrinity(), 2));
-            $sequence->setPosition(0);
+            $sequence->setPosition(0);*/
             $this->sequencePersister->persist($sequence);
         }
         if ($sequence->getMode() == Sequence::TRINITY) {
@@ -645,10 +713,11 @@ class UBAlgo {
 
         if ($balance >= 1000) {
             echo "compte : $balance \n";
-            //return UBAlgo::DEFAULT_MISE;
-            return round(($balance * 0.0075) / 3.2, 2);
-        } else {
             return UBAlgo::DEFAULT_MISE;
+            //return round(($balance * 0.0075) / 3.2, 2);
+        } else {
+             return UBAlgo::DEFAULT_MISE;
+            //return $this->calcMise(NULL, $this->getMiseStartToRecup()/3);
         }
     }
 
@@ -681,6 +750,24 @@ class UBAlgo {
         return round(($amount / ($taux)) + 0.01, 2);
     }
 
+    public function calcTpMise(Sequence $sequence, $taux) {
+
+            echo "debug calc nextMg id " . $sequence->getId() . "\n";
+            $trades = $this->tradeRepo->getTradeForSequence($sequence);
+            $amount = 0;
+            $i = 0;
+            foreach ($trades as $trade) {
+                if ($trade->getSequenceState() != Trade::SEQSTATEDONE && $trade->getState() != Trade::STATEWIN && $i < 2) {
+                    $amount += $trade->getAmount();
+                    echo "recupère la valeure a recup " . $amount . "\n";
+                    $i++;
+                }
+                
+            }
+
+        echo round(($amount / ($taux)) + 0.01, 2) . " ******  test taux " . $taux . " \n";
+        return round(($amount / ($taux)) + 0.01, 2);
+    }
     // initialise tous les signaux non pris a 1 pour eviter les mauvais signaux
     public function initTradeSignalBegin() {
         $listSignal = $this->signalRepo->findByIsTrade(0);

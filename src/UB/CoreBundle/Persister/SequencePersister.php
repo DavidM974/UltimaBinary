@@ -28,7 +28,7 @@ class SequencePersister
         $sequence = new Sequence();
         $sequence->setLength(0);
         $sequence->setState(Sequence::OPEN);
-        $sequence->setMode(Sequence::TRINITY);
+        $sequence->setMode(Sequence::MG);
         $sequence->setPosition(0);
         $sequence->setMultiWin(0);
         $sequence->setLengthTrinity($LengthTrinity);
