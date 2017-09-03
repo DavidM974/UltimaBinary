@@ -514,8 +514,13 @@ class UBAlgo {
     }
 
     public function winTR(Trade $trade, Sequence $sequence) {
+        
+        $sequence->setSumWinTR($this->calcSumCatchUp($trade, $sequence));
         $sumWinTR = $sequence->getSumWinTR();
-        $sequence->setSumWinTR($this->floorDec($sumWinTR + $this->calcSumCatchUp($trade, $sequence)));
+        $sequence->setSumLooseTR($sequence->getSumLooseTR() - $sumWinTR);
+        $this->sequencePersister->persist($sequence);
+        $trade->setSequenceState(Trade::SEQSTATEDONE);
+        $this->tradePersister->persist($trade);
         if (($sequence->getSumWinTR() + $sequence->getProfit()) > $sequence->getSumLooseTR()) {
             $sequence->setSumLooseTR(0);
             $sequence->setState(Sequence::CLOSE);
@@ -532,7 +537,7 @@ class UBAlgo {
             $this->sequencePersister->persist($sequence);
         }
         // bascule en mode THEOPHILE en créant un nouveau trade a ratrappé dans la sequence avec la valeur restente a rattraper
-        echo "TEST-------".($this->parameter->getBalance() * UBAlgo::MODE_ORANGE). "\n";
+        echo "MONTANT ORANGE -------".($this->parameter->getBalance() * UBAlgo::MODE_ORANGE). "\n";
         if($this->getSumToRecup($sequence) < ($this->parameter->getBalance() * UBAlgo::MODE_ORANGE)) {
             echo "BASCULE-MODE TEOPHILE";
             $sequence->setMode(Sequence::THEOPHILE);
@@ -586,7 +591,7 @@ class UBAlgo {
 
     public function initTrinity(Sequence $sequence) {
         $sequence->setPosition(0);
-        $sequence->setSumLooseTR($sequence->getSumLooseTR() - $sequence->getSumWinTR());
+       // $sequence->setSumLooseTR($sequence->getSumLooseTR() - $sequence->getSumWinTR());
         $sequence->setSumWinTR(0);
         $sequence->setMise(round($sequence->getSumLooseTR() / $sequence->getLengthTrinity(), 2));
         if ($sequence->getMise() < 0.4) {
