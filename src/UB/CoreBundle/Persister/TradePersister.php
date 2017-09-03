@@ -37,7 +37,7 @@ class TradePersister
         $trade->setDuration($lastTrade->getDuration());
         $trade->setCurrency($lastTrade->getCurrency());
         $trade->setContractType($lastTrade->getContractType());
-        $trade->setState(Trade::STATETRADE);
+        $trade->setState(Trade::STATELOOSE);
         $trade->setSequenceState(Trade::SEQSTATEUNDONE);
         $trade->setSequence($lastTrade->getSequence());
         $trade->setIdBinary(random_int(100000, 1000000));

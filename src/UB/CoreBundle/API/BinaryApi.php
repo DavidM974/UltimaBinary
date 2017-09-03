@@ -33,7 +33,9 @@ class BinaryApi implements ApiInterface {
         $this->parameterRepo = $parameterRepo;
         $this->parameterPersister = $parameterPersister;
     }
-                function miseHausse($conn, Trade $trade) {
+    
+    function miseHausse($conn, Trade $trade) {
+        $unit = ($trade->getSymbole()->getName() == 'R_75') ? 't' : 'm';
         $conn->send('
                     {
                       "buy": "1",
@@ -44,12 +46,13 @@ class BinaryApi implements ApiInterface {
                             "contract_type": "CALL",
                             "currency": "' . $trade->getCurrency()->getName() . '",
                             "duration": "' . $trade->getDuration() . '",
-                            "duration_unit": "t",
+                            "duration_unit": "' . $unit . '",
                             "symbol": "' . $trade->getSymbole()->getName() . '"
                       }}');
     }
 
     function miseBaisse($conn, Trade $trade) {
+        $unit = ($trade->getSymbole()->getName() == 'R_75') ? 't' : 'm';
         $conn->send('
                     {
                       "buy": "1",
@@ -60,7 +63,7 @@ class BinaryApi implements ApiInterface {
                             "contract_type": "PUT",
                             "currency": "' . $trade->getCurrency()->getName() . '",
                             "duration": "' . $trade->getDuration() . '",
-                            "duration_unit": "t",
+                            "duration_unit": "' . $unit . '",
                             "symbol": "' . $trade->getSymbole()->getName() . '"
                       }}');
     }

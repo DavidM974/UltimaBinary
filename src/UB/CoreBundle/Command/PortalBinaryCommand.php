@@ -88,7 +88,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $this->api->sendPing($conn);
             });*/
 
-            $loop->addPeriodicTimer(15, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(5, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                  $this->api->askLastResult($conn);
             });
@@ -126,16 +126,16 @@ class PortalBinaryCommand extends ContainerAwareCommand
             });
             
           
-            $loop->addPeriodicTimer(10, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(5, function(Timer $timer) use ( $conn) {
                 // create radom signal  in green mode
-                if(!$this->ubAlgo->isModeOrange($this->ubAlgo->getSequenceOpen())) {
+               // if(!$this->ubAlgo->isModeOrange($this->ubAlgo->getSequenceOpen())) {
                     $symboleRepo = $this->getContainer()->get('symbole_repo');
                     $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(3);
                     $tradeRepo = $this->getContainer()->get('trade_repo');
                    
                     $symbole = $symboleRepo->findOneById(3); // 9 EURUSD /  3 VOL-25
                     $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade());
-                }
+               // }
             });
              
             

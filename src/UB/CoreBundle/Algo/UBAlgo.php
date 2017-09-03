@@ -52,9 +52,15 @@ class UBAlgo {
     private $miseCourante;
     private $staticWinJoker;
     private $sequencesToExclude;
+    private $winOrange;
 
     const DEFAULT_MISE = 0.5;
     const NB_SEQ = 1;
+
+    const MODE_VERT = 0.025;
+    const MODE_ORANGE = 0.05;
+    const MODE_ROUGE = 0.1;
+    
 
     public function getMiseInitial() {
         return $this->miseInitial;
@@ -97,6 +103,7 @@ class UBAlgo {
         $this->entityManager = $em;
 
         $this->sequencesToExclude = array();
+        $this->winOrange = false;
         // todo create api binary
         //$this->myApi = $myapi;
     }
@@ -258,7 +265,7 @@ class UBAlgo {
                         $trade = $this->createNewTradeForApi($signal, $amount);
                         $this->doMise($trade, $conn, $api);
                     }
-                    else if ($amount > 0 && $this->isModeOrange($sequence) && $signal->getSymbole()->getId() != 3) { // ici 3 = R_25
+                    else if ($amount > 0 && $this->isModeOrange($sequence) && $signal->getSymbole()->getId() != 88) { // ici 3 = R_25 pour exclure le random 
                         
                         // new api call with mise to send the trade
                         $trade = $this->createNewTradeForApi($signal, $amount);
@@ -338,7 +345,7 @@ class UBAlgo {
     }
     
     public function getMiseStartToRecup() {
-        return 2.5;//round($this->parameter->getBalance()/200,2);
+        return round($this->parameter->getBalance()/200,2);
     }
 
     public function getSequenceForTrade(Trade $trade) {
@@ -460,7 +467,8 @@ class UBAlgo {
             echo "Update balance ! \n";
             $this->parameter->setBalance($this->parameter->getBalance() + $trade->getAmount() + $trade->getAmountRes());
             $this->parameterPersister->persist($this->parameter);
-            $trade->getSequence()->isFinished($this->tradeRepo);
+            if($trade->getSequence()->getMode() != Sequence::TRINITY)
+                $trade->getSequence()->isFinished($this->tradeRepo);
         } else if ($trade->getState() == Trade::STATELOOSE && $trade->getSequenceState() != Trade::SEQSTATEDONE) {
             $this->looseTrade($trade);
 
@@ -523,13 +531,27 @@ class UBAlgo {
             $sequence->setMultiWin(0);
             $this->sequencePersister->persist($sequence);
         }
+        // bascule en mode THEOPHILE en créant un nouveau trade a ratrappé dans la sequence avec la valeur restente a rattraper
+        echo "TEST-------".($this->parameter->getBalance() * UBAlgo::MODE_ORANGE). "\n";
+        if($this->getSumToRecup($sequence) < ($this->parameter->getBalance() * UBAlgo::MODE_ORANGE)) {
+            echo "BASCULE-MODE TEOPHILE";
+            $sequence->setMode(Sequence::THEOPHILE);
+            $this->sequencePersister->persist($sequence);
+            $lastTrade = $this->tradeRepo->getLastTrade($sequence);
+            $miseTH = round($sequence->getSumLooseTR()/8, 2);
+            $this->resetTradeStateForTrinity($sequence);
+            for($i=0; $i<8;$i++) {
+                $this->tradePersister->newTradeIntercale($miseTH, $lastTrade);
+            }
+        }
     }
     
     public function modeOrange(Sequence $sequence) {
-        if($sequence->getMultiWin() == 2 && $sequence->getMise() >= ($this->parameter->getBalance() * 0.05)) {
+        if($sequence->getMultiWin() == 2 ) {// orange actif tous le temps ancienne condtion : $sequence->getMise() >= ($this->parameter->getBalance() * UBAlgo::MODE_ORANGE)
             echo "\n ---- MODE ORANGE ----  \n";
             $this->initTrinity($sequence);
             $this->sequencePersister->persist($sequence);
+            $this->winOrange = true;
             return true;
         }
          echo "\n ---- PAS ORANGE ----  \n";
@@ -537,15 +559,25 @@ class UBAlgo {
     }
     
     public function isModeOrange(Sequence $sequence = NULL) {
-         if($sequence != NULL && $sequence->getMise() >= ($this->parameter->getBalance() * 0.05)) {
+        if ($sequence != NULL &&$sequence->getMode() == Sequence::TRINITY){
+         if($sequence != NULL && $sequence->getSumLooseTR() >= ($this->parameter->getBalance() * UBAlgo::MODE_ORANGE)) {
+             echo "MODE_ORANGE ----- TRINITY  \n";
              return true;
          }
+        } else {
+          if($sequence != NULL && $sequence->getSumLoose() >= ($this->parameter->getBalance() * UBAlgo::MODE_ORANGE)) {
+             echo "MODE_ORANGE -----SUM LOOSE => ".$sequence->getSumLoose()."  MONTANT ORANGE => ".($this->parameter->getBalance() * UBAlgo::MODE_ORANGE)." \n";
+             return true;
+         }  
+        }
          return false;
     }
     public function modeRouge(Sequence $sequence) {
-        if($sequence->getMultiWin() == 1 && $sequence->getMise() >= ($this->parameter->getBalance() * 0.1)) {
+        if($sequence->getMultiWin() == 1 && $sequence->getPosition() == 1 && $sequence->getMise() >= ($this->parameter->getBalance() * UBAlgo::MODE_ROUGE)) {
             echo "\n ---- MODE ROUGE ----  \n";
             $this->initTrinity($sequence);
+            $this->sequencePersister->persist($sequence);
+            $this->winOrange = false;
             return true;
         }
         echo "\n ---- PAS ROUGE ----  \n";
@@ -577,16 +609,6 @@ class UBAlgo {
         return floor($nb * 100) / 100;
     }
     public function winTp(Trade $trade, Sequence $sequence) {
-        if ($sequence->getSumWin() > $sequence->getSumLoose()) {
-            echo "Sum win > sum loose Close Seq\n";
-            $sequence->initTradeWin($this->tradeRepo);
-            $sequence->isFinished();
-            $this->sequencePersister->persist($sequence);
-            if ($sequence->getLength() == 1) {
-                $this->checkJoker();
-            }
-            return;
-        }
 
          if ($sequence->getLength() > 1 && $trade->getAmountRes() >= $sequence->getNextAmountSequence($this->tradeRepo)) {
             echo "Maj Trade non ratrape dans sequence X2 \n";
@@ -603,16 +625,6 @@ class UBAlgo {
         }
     }
     public function winMG(Trade $trade, Sequence $sequence) {
-        if ($sequence->getSumWin() > $sequence->getSumLoose()) {
-            echo "Sum win > sum loose Close Seq\n";
-            $sequence->initTradeWin($this->tradeRepo);
-            $sequence->isFinished();
-            $this->sequencePersister->persist($sequence);
-            if ($sequence->getLength() == 1) {
-                $this->checkJoker();
-            }
-            return;
-        }
 
         if ($this->parameter->isMgActive()) {
             echo "Maj Trade non ratrape MG ----- dans sequence \n";
@@ -690,13 +702,20 @@ class UBAlgo {
         if ($sequence->getLength() == $this->parameter->getMartingaleSize()) {
             
             $sequence->setMode(Sequence::THEOPHILE);
-            /* cade a mettre dans le basculement en mode trinity
-             * $amount = round($this->getSumToRecup($sequence), 2);
-             * $sequence->setSumLooseTR($amount);
-            $sequence->setMise(round($amount / $sequence->getLengthTrinity(), 2));
-            $sequence->setPosition(0);*/
             $this->sequencePersister->persist($sequence);
         }
+        
+        if($sequence->getMode() == Sequence::THEOPHILE && $this->getSumToRecup($sequence) >= ($this->parameter->getBalance() * UBAlgo::MODE_ORANGE)) {
+            echo "\n BASCULE EN MODE TRINITY-----------------------------\n";
+            $amount = round($this->getSumToRecup($sequence), 2);
+            $sequence->setSumLooseTR($amount);
+            $sequence->setMise(round($amount / $sequence->getLengthTrinity(), 2));
+            $sequence->setPosition(0);
+            $sequence->setMode(Sequence::TRINITY);
+            $this->sequencePersister->persist($sequence);
+            $this->resetTradeStateForTrinity($sequence);
+        }
+        
         if ($sequence->getMode() == Sequence::TRINITY) {
             echo "\n INCREME SUM LOOSE -------------->" . $sequence->getSumLooseTR() + $trade->getAmount() . "<-----------------\n";
             $sequence->setMultiWin(0);
@@ -706,15 +725,28 @@ class UBAlgo {
         $this->isLastTR($sequence);
         $this->tradePersister->persist($trade);
     }
+    //initialise les statut de trade à Done au passage en mode trinity pour ne pas avoir de conflit plus tard
+    public function resetTradeStateForTrinity(Sequence $sequence) {
+         $trades = $this->tradeRepo->getTradeForSequence($sequence);
+            foreach ($trades as $trade) {
+                if ($trade->getSequenceState() != Trade::SEQSTATEDONE && $trade->getState() != Trade::STATEWIN) {
+                    $trade->setSequenceState(Trade::SEQSTATEDONE);
+                    $this->tradePersister->persist($trade);
+                }
+            }
+    }
 
+    
+    
     public function getNewMiseInit() {
 
         $balance = $this->parameter->getBalance();
 
         if ($balance >= 1000) {
             echo "compte : $balance \n";
-            return UBAlgo::DEFAULT_MISE;
-            //return round(($balance * 0.0075) / 3.2, 2);
+            //return UBAlgo::DEFAULT_MISE;
+            //return round(($balance * 0.01) /2, 2);
+            return $this->calcMise(NULL, $this->getMiseStartToRecup()/3);
         } else {
              return UBAlgo::DEFAULT_MISE;
             //return $this->calcMise(NULL, $this->getMiseStartToRecup()/3);
@@ -778,6 +810,12 @@ class UBAlgo {
     }
 
     public function getSumToRecup(Sequence $sequence) {
+        // en trinty je recupère ma valeur dans sequence
+        if($sequence->getMode() == Sequence::TRINITY) {
+            echo "SUM TO RECUP ". $sequence->getSumLooseTR()."\n";
+            return $sequence->getSumLooseTR();
+        }
+        //sinon je calcule la somme perdue par rapport au trades
         $trades = $this->tradeRepo->getTradeForSequence($sequence);
         $amount = 0;
         foreach ($trades as $trade) {
@@ -785,6 +823,7 @@ class UBAlgo {
                 $amount += $trade->getAmount();
             }
         }
+        echo "SUM TO RECUP". $amount."\n";
         return $amount;
     }
 

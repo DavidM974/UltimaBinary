@@ -368,7 +368,7 @@ class Sequence
         $trades = $this->getTrades();
         foreach ($trades as $trade) {
             // retourne la première mise 
-            if ($trade->getState() != Trade::STATEWIN) {
+            if ($trade->getState() == Trade::STATEWIN) {
                 $sum += $trade->getAmountRes();
             }
         }
@@ -380,7 +380,7 @@ class Sequence
         $trades = $this->getTrades();
         foreach ($trades as $trade) {
             // retourne la première mise 
-            if ($trade->getState() != Trade::STATELOOSE) {
+            if ($trade->getState() == Trade::STATELOOSE && $trade->getSequenceState() != Trade::SEQSTATEDONE) {
                 $sum += $trade->getAmount();
             }
         }

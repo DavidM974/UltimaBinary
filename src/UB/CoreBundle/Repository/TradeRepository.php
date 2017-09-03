@@ -1,7 +1,7 @@
 <?php
 
 namespace UB\CoreBundle\Repository;
-
+use UB\CoreBundle\Entity\Sequence;
 /**
  * TradeRepository
  *
@@ -29,13 +29,17 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
         return $trades;
 
     }
-    
-    function getLastTrade() {
-        return $this->createQueryBuilder('t')
-                        ->orderBy('t.signalTime', 'DESC')
-                        ->setMaxResults(1)
-                        ->getQuery() 
-                        ->getOneOrNullResult();
+
+    function getLastTrade(Sequence $sequence = NULL) {
+        $qb = $this->createQueryBuilder('t');
+        if ($sequence != NULL) {
+            $qb->Where('t.sequence = :seq')
+            ->setParameter('seq', $sequence);
+        }
+        return $qb->orderBy('t.signalTime', 'DESC')
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
     }
 
     public function getUndoneTrade($sequence) {
