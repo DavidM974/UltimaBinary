@@ -46,17 +46,29 @@ function getLastWinTrade(Sequence $sequence = NULL) {
         $qb = $this->createQueryBuilder('t');
         if ($sequence != NULL) {
             $qb->Where('t.sequence = :seq')
-            ->setParameter('seq', $sequence)
-            ->andWhere('tr.state = :state')
-            ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATEWIN);
+                    ->setParameter('seq', $sequence)
+                    ->andWhere('tr.state = :state')
+                    ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATEWIN);
         }
         return $qb->orderBy('t.signalTime', 'DESC')
-                ->setMaxResults(1)
-                ->getQuery()
-                ->getOneOrNullResult();
+                        ->setMaxResults(1)
+                        ->getQuery()
+                        ->getOneOrNullResult();
     }
-    
-        
+
+    function getLastLooseTrade(Sequence $sequence = NULL) {
+        $qb = $this->createQueryBuilder('t');
+        if ($sequence != NULL) {
+            $qb->Where('t.sequence = :seq')
+                    ->setParameter('seq', $sequence)
+                    ->andWhere('tr.state = :state')
+                    ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATELOOSE);
+        }
+        return $qb->orderBy('t.signalTime', 'DESC')
+                        ->setMaxResults(1)
+                        ->getQuery()
+                        ->getOneOrNullResult();
+    }
 
     public function getUndoneTrade($sequence) {
          $qb = $this->createQueryBuilder('tr');

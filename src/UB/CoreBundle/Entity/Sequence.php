@@ -20,6 +20,7 @@ class Sequence
     const MG = 'MG';
     const TRINITY = 'TRINITY';
     const THEOPHILE = 'THEOPHILE';
+    const EVO = 'EVO';
     /**
      * @var int
      *
@@ -383,6 +384,21 @@ class Sequence
                   }
               }
               throw new \Exception('[getNextUndoneTrade] Erreur BDD Sequence ouverte avec rien a ratrapper !');
+        }
+        return NULL;
+    }
+    
+        public function repartValueOnUndone(TradeRepository $tradeRepo, \UB\CoreBundle\Persister\TradePersister $tradePersister, $value) {
+
+        if ($this->getState() == Sequence::OPEN){  
+            $trades = $tradeRepo->findBySequence($this);
+              foreach ($trades as $trade) {
+                  // retourne la première mise 
+                  if($trade->getSequenceState() == Trade::SEQSTATEUNDONE){
+                    $trade->setAmount($trade->getAmount() + $value);
+                    $tradePersister->persist($trade);
+                  }
+              }
         }
         return NULL;
     }

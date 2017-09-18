@@ -28,9 +28,10 @@ class SequencePersister
         $sequence = new Sequence();
         $sequence->setLength(0);
         $sequence->setState(Sequence::OPEN);
-        $sequence->setMode(Sequence::MG);
+        $sequence->setMode(Sequence::EVO);
         $sequence->setPosition(0);
         $sequence->setMultiWin(0);
+        $sequence->setMultiLoose(0);
         $sequence->setLengthTrinity($LengthTrinity);
         $sequence->setSumLooseTR($newSumLoose);
         $sequence->setTimeStart(new \DateTime());
