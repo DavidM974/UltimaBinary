@@ -85,6 +85,7 @@ class BinaryApi implements ApiInterface {
         //crée le fichier pour envoyer au MT4 2 champs transaction_id, res
         $tabProfit = $data['profit_table']['transactions'];
         $tabTread = array();
+        $tabId = array();
         foreach ($tabProfit as $tab) {
             $transaction_id = $tab['transaction_id'];
             $res = $tab['sell_price'];
@@ -94,7 +95,8 @@ class BinaryApi implements ApiInterface {
 
             // checker si trade existant sinon j'enregistre
            $trade =  $this->tradeRepo->findOneBy(array('idBinary' => $transaction_id, 'state' => Trade::STATETRADE));
-           if ($trade != NULL) {
+           
+           if ($trade != NULL  && array_search($transaction_id, $tabTread) == false) {
                
                if ($res > 0) {
                 $trade->setAmountRes($res - $trade->getAmount());
@@ -105,6 +107,7 @@ class BinaryApi implements ApiInterface {
                    $trade->setAmountRes(0);
                     $trade->setState(Trade::STATELOOSE);
                }
+               $tabId[] = $transaction_id;
                $tabTread[] = $trade;
                $this->tradePersister->persist($trade);
            } else {

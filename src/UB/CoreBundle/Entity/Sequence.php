@@ -90,6 +90,12 @@ class Sequence
      */
     private $multiWin;
     
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="multiLoose", type="smallint", nullable=true)
+     */
+    private $multiLoose;
     
     /**
      * @var float
@@ -120,6 +126,13 @@ class Sequence
      */
     private $mise;
     
+     /**
+     * @var float
+     *
+     * @ORM\Column(name="balanceStart", type="float", nullable=true)
+     */
+    private $balanceStart;
+    
     public function __construct()
     {
       $this->trades = new ArrayCollection();
@@ -134,6 +147,30 @@ class Sequence
     public function getId()
     {
         return $this->id;
+    }
+    
+    /**
+     * Set balanceStart
+     *
+     * @param float $balanceStart
+     *
+     * @return Parameter
+     */
+    public function setBalanceStart($balanceStart)
+    {
+        $this->balanceStart = $balanceStart;
+
+        return $this;
+    }
+
+    /**
+     * Get balanceStart
+     *
+     * @return float
+     */
+    public function getBalanceStart()
+    {
+        return $this->balanceStart;
     }
 
     /**
@@ -469,7 +506,29 @@ class Sequence
     {
         return $this->multiWin;
     }   
+     /**
+     * Set multiLoose
+     *
+     * @param integer $multiLoose
+     *
+     * @return Sequence
+     */
+    public function setMultiLoose($multiLoose)
+    {
+        $this->multiLoose = $multiLoose;
 
+        return $this;
+    }
+
+    /**
+     * Get multiLoose
+     *
+     * @return int
+     */
+    public function getMultiLoose()
+    {
+        return $this->multiLoose;
+    }   
      /**
      * Set sumLooseTR
      *

@@ -41,6 +41,22 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
                 ->getQuery()
                 ->getOneOrNullResult();
     }
+    
+function getLastWinTrade(Sequence $sequence = NULL) {
+        $qb = $this->createQueryBuilder('t');
+        if ($sequence != NULL) {
+            $qb->Where('t.sequence = :seq')
+            ->setParameter('seq', $sequence)
+            ->andWhere('tr.state = :state')
+            ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATEWIN);
+        }
+        return $qb->orderBy('t.signalTime', 'DESC')
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
+    }
+    
+        
 
     public function getUndoneTrade($sequence) {
          $qb = $this->createQueryBuilder('tr');
@@ -54,8 +70,18 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
             ->getQuery()
             ->getResult(); 
         return $result;
-    }    
+    }
     
+    public function isTrading() {
+        $qb = $this->createQueryBuilder('tr')
+                ->Where('tr.state = :state')
+                ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATETRADE)
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
+        return $qb;
+    }
+
     public function getLooseTrades($sequence) {
         $qb = $this->createQueryBuilder('tr');
 

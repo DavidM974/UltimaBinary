@@ -45,12 +45,20 @@ class TradeSignalPersister
         $signal->setCategorySignal($categSignal);
         $signal->setName($categSignal->getName());
         
-        if ($trade->getContractType() == 'PUT')
+        if ($trade->getContractType() == 'PUT' AND $trade->getState() == \UB\CoreBundle\Entity\Trade::STATELOOSE)
         {
             $signal->setContractType('CALL');
-        } else {
+        } else if($trade->getContractType() == 'PUT') {
             $signal->setContractType('PUT');
         }
+        if ($trade->getContractType() == 'CALL' AND $trade->getState() == \UB\CoreBundle\Entity\Trade::STATELOOSE)
+        {
+            $signal->setContractType('PUT');
+        } else {
+            $signal->setContractType('CALL');
+        }
+        
+        
         /*
         if (mt_rand(0, 99) < 50) {
             $signal->setContractType('CALL');

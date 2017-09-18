@@ -4,11 +4,13 @@
     <open-files xmlns="http://www.netbeans.org/ns/projectui-open-files/2">
         <group>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/API/BinaryApi.php</file>
+            <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Entity/Parameter.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Algo/UBAlgo.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Repository/TradeRepository.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Entity/Trade.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Persister/TradePersister.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Repository/SequenceRepository.php</file>
+            <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Persister/SequencePersister.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Entity/Sequence.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Persister/TradeSignalPersister.php</file>
             <file>file:/C:/wamp/www/workspace/UltimaBinV1/src/UB/CoreBundle/Command/PortalBinaryCommand.php</file>
