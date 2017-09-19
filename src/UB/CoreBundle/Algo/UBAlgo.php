@@ -228,7 +228,7 @@ class UBAlgo {
             foreach ($listSignals as $signal) {
 
                 // récupère la prochaine valeur de mise
-                if(($this->getModeSequence() == Sequence::EVO && $this->isTradingFinish() && !$this->parameter->getIsActiveM1() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ)) {
+                if(($this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
                     $rate = $this->getRateSignal($signal);
                     $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
                     echo $amount." mise a ratrapper \n";      
@@ -283,10 +283,10 @@ class UBAlgo {
     public function getBestRate($rate) {
         switch (true) {
             case ($rate >= 0.90):
-                $res = 0.88;
+                $res = 0.84;
                 break;
             case ($rate >= 0.80 and $rate < 0.90):
-                $res = 0.85;
+                $res = 0.79;
                 break;
             case ($rate >= 0.70 and $rate < 0.80):
                 $res = 0.77;
@@ -325,13 +325,10 @@ class UBAlgo {
         } else {
             echo " ----- Sequence Ouverte dispo \n";
             foreach ($listSequence as $sequence) {
-                if ($sequence->getMode() == Sequence::TRINITY && $trade->getAmount() >= $sequence->getMise()) {
-                    return $sequence;
-                }
-                else if ($this->calcMiseForSequence($sequence, $this->getBestRate($trade->getRate())) == $trade->getAmount()) {
+            //if ($this->calcMiseForSequence($sequence, $this->getBestRate($trade->getRate())) == $trade->getAmount()) {
                     echo "---******- idSequence " . $sequence->getId() . ' taux : ' . $this->getRateTrade($trade) . " ----\n";
                     return $sequence;
-                }
+              //  }
             }
             return $this->sequencePersister->newSequence($this->parameter->getInfinitySize(), $this->getMiseStartToRecup(),  $this->parameter->getBalance());
         }
@@ -631,18 +628,21 @@ class UBAlgo {
         $trade->setState(Trade::STATELOOSE);
         $sequence = $trade->getSequence();
         $sequence->setMultiLoose($sequence->getMultiLoose() + 1);
-                $this->tradePersister->persist($trade);
-        if ($sequence->getMultiLoose() % 3 == 1) {
-            $this->looseMod4($trade, $sequence);
+        $this->tradePersister->persist($trade);
+        if ($sequence->getMultiLoose() > 3) {
+            if ($sequence->getMultiLoose() % 3 == 1) {
+                $this->looseMod4($trade, $sequence);
+            }
+            if ($sequence->getMultiLoose() % 3 == 2) {
+                $this->looseMod5($trade, $sequence);
+            }
+            if ($sequence->getMultiLoose() % 3 == 0) {
+                $this->looseMod6($trade, $sequence);
+            }
         }
-        if ($sequence->getMultiLoose() % 3 == 2) {
-            $this->looseMod5($trade, $sequence);
-        }
-        if ($sequence->getMultiLoose() % 3 == 0) {
-            $this->looseMod6($trade, $sequence);
-        }
+
     }
-    
+
     public function looseMod4(Trade $trade, Sequence $sequence) {
         $halfAmount = round($trade->getAmount()/2, 2);
         $trade->setAmount($halfAmount);
@@ -652,10 +652,10 @@ class UBAlgo {
     }
     
     public function looseMod5(Trade $trade, Sequence $sequence) {
+        $this->sequencePersister->persist($sequence);
         $halfAmount = round($trade->getAmount()/2, 2);
-        $lastLooseTrade = $this->tradeRepo->getLastLooseTrade();
-        $lastLooseTrade->setAmount($lastLooseTrade->getAmount() + $halfAmount);
-        $this->tradePersister->persist($lastLooseTrade);
+        $trade->setAmount($halfAmount);
+        $this->tradePersister->persist($trade);
         $sumToRepart = round($halfAmount/$sequence->getMultiLoose(), 2);
         $sequence->repartValueOnUndone($this->tradeRepo, $this->tradePersister, $sumToRepart);
     }
@@ -663,6 +663,8 @@ class UBAlgo {
     public function looseMod6(Trade $trade, Sequence $sequence) {
         $trade->setSequenceState(Trade::SEQSTATEDONE);
         $this->tradePersister->persist($trade);
+        $sequence->setMultiLoose($sequence->getMultiLoose() - 1);
+        $this->sequencePersister->persist($sequence);
         $sumToRepart = round($trade->getAmount() / $sequence->getMultiLoose(), 2);
         $sequence->repartValueOnUndone($this->tradeRepo, $this->tradePersister, $sumToRepart);
     }
@@ -687,7 +689,8 @@ class UBAlgo {
             echo "compte : $balance \n";
             //return UBAlgo::DEFAULT_MISE;
             //return round(($balance * 0.01) /2, 2);
-            return $this->calcMise(NULL, $this->getMiseStartToRecup()/3);
+            return UBAlgo::DEFAULT_MISE;
+            //return $this->calcMise(NULL, $this->getMiseStartToRecup()/3);
         } else {
              return UBAlgo::DEFAULT_MISE;
             //return $this->calcMise(NULL, $this->getMiseStartToRecup()/3);
@@ -725,7 +728,7 @@ class UBAlgo {
 
     public function calcEvoMise(Sequence $sequence, $taux) {
 
-            echo "debug calc nextMg id " . $sequence->getId() . "\n";
+            echo "debug calc Evo id " . $sequence->getId() . "\n";
             $trades = $this->tradeRepo->getTradeForSequence($sequence);
             $amount = 0;
             foreach ($trades as $trade) {
@@ -734,6 +737,9 @@ class UBAlgo {
                     echo "recupère la valeure a recup " . $amount . "\n";
                     break;
                 }
+            }
+            if (round(($amount / ($taux)) + 0.01, 2)   < 0.5 && $amount > 0){
+                return 0.5;
             }
 
         echo round(($amount / ($taux)) + 0.01, 2) . " ******  test taux " . $taux . " \n";

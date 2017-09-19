@@ -62,7 +62,9 @@ function getLastWinTrade(Sequence $sequence = NULL) {
             $qb->Where('t.sequence = :seq')
                     ->setParameter('seq', $sequence)
                     ->andWhere('tr.state = :state')
-                    ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATELOOSE);
+                    ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATELOOSE)
+                    ->andWhere('tr.sequenceState = :seqState')
+                    ->setParameter('seqState', \UB\CoreBundle\Entity\Trade::SEQSTATEUNDONE);
         }
         return $qb->orderBy('t.signalTime', 'DESC')
                         ->setMaxResults(1)
