@@ -135,7 +135,7 @@ class UBAlgo {
     // Met à jours le statut du trade dans la seqeunce
     protected function setSequenceStateTradeAlgo(Sequence $sequence, Trade $trade) {
         $this->parameter = $this->getLastParameter();
-        if ($sequence->getLength() == 1) {
+        /*if ($sequence->getLength() == 1) {
             $trade->setSequenceState(Trade::SEQSTATEFIRST);
         } else if ($this->parameter->isMgActive()) {
             if ($sequence->getLength() < $this->parameter->getMartingaleSize()) {
@@ -145,9 +145,9 @@ class UBAlgo {
             } else {
                 $trade->setSequenceState(Trade::SEQSTATEUNDONE);
             }
-        } else {
+        } else {*/
             $trade->setSequenceState(Trade::SEQSTATEUNDONE);
-        }
+       // }
     }
 
     public function getNbSequenceOpen() {
@@ -318,7 +318,8 @@ class UBAlgo {
         $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading();
         if (empty($listSequence)) {
             echo " ------ Pas de sequence Ouverte dispo \n";
-            $sequence = $this->sequencePersister->newSequence($this->parameter->getInfinitySize(), $this->getMiseStartToRecup(), $this->parameter->getBalance());
+            
+            $sequence = $this->sequencePersister->newSequence(1, 1, $this->parameter->getBalance());
             $this->initTrinity($sequence);
             $this->sequencePersister->persist($sequence);
             return $sequence;
@@ -330,7 +331,10 @@ class UBAlgo {
                     return $sequence;
               //  }
             }
-            return $this->sequencePersister->newSequence($this->parameter->getInfinitySize(), $this->getMiseStartToRecup(),  $this->parameter->getBalance());
+            /*if ($this->getNbSequenceOpen() > 0){
+                //
+            }else*/
+            return $this->sequencePersister->newSequence(1, 1,  $this->parameter->getBalance());
         }
     }
 
@@ -410,8 +414,10 @@ class UBAlgo {
             echo "Update balance ! \n";
             $this->parameter->setBalance($this->parameter->getBalance() + $trade->getAmount() + $trade->getAmountRes());
             $this->parameterPersister->persist($this->parameter);
-            if($trade->getSequence()->getMode() != Sequence::TRINITY)
+            if (!$this->isSequenceFinish($trade->getSequence())){
                 $trade->getSequence()->isFinished($this->tradeRepo);
+            }
+            
         } else if ($trade->getState() == Trade::STATELOOSE && $trade->getSequenceState() != Trade::SEQSTATEDONE) {
             $this->looseTrade($trade);
 
@@ -629,45 +635,80 @@ class UBAlgo {
         $sequence = $trade->getSequence();
         $sequence->setMultiLoose($sequence->getMultiLoose() + 1);
         $this->tradePersister->persist($trade);
-        if ($sequence->getMultiLoose() > 3) {
-            if ($sequence->getMultiLoose() % 3 == 1) {
-                $this->looseMod4($trade, $sequence);
+        $nbLoose = $sequence->getNbLooseEvo($this->tradeRepo);
+        if ($nbLoose > 3 && $nbLoose < 7) {
+            if ($nbLoose % 3 == 1) {
+                $this->looseMod4($trade, $sequence, $nbLoose);
             }
-            if ($sequence->getMultiLoose() % 3 == 2) {
-                $this->looseMod5($trade, $sequence);
+            if ($nbLoose % 3 == 2) {
+                $this->looseMod5($trade, $sequence, $nbLoose);
             }
-            if ($sequence->getMultiLoose() % 3 == 0) {
-                $this->looseMod6($trade, $sequence);
+            if ($nbLoose % 3 == 0) {
+                $this->looseMod6($trade, $sequence, $nbLoose);
+            }
+        } else if ($nbLoose > 6) {
+            if ($nbLoose % 2 == 1) {
+                $this->looseMod7($trade, $sequence, $nbLoose);
+            }
+            if ($nbLoose % 2 == 0) {
+                $this->looseMod8($trade, $sequence, $nbLoose);
             }
         }
 
     }
 
-    public function looseMod4(Trade $trade, Sequence $sequence) {
+    public function looseMod4(Trade $trade, Sequence $sequence, $nbLoose) {
         $halfAmount = round($trade->getAmount()/2, 2);
         $trade->setAmount($halfAmount);
         $this->tradePersister->persist($trade);
-        $sumToRepart = round($halfAmount/$sequence->getMultiLoose(), 2);
+        $sumToRepart = round($halfAmount/$nbLoose, 2);
         $sequence->repartValueOnUndone($this->tradeRepo, $this->tradePersister, $sumToRepart);
     }
     
-    public function looseMod5(Trade $trade, Sequence $sequence) {
+    public function looseMod5(Trade $trade, Sequence $sequence, $nbLoose) {
         $this->sequencePersister->persist($sequence);
         $halfAmount = round($trade->getAmount()/2, 2);
-        $trade->setAmount($halfAmount);
-        $this->tradePersister->persist($trade);
-        $sumToRepart = round($halfAmount/$sequence->getMultiLoose(), 2);
+        $this->checkHalfAmount($sequence, $trade, $halfAmount);
+        $sumToRepart = round($halfAmount/ $nbLoose, 2);// -1 pour retirer la première mise a ratrapper
+        echo "DEMI SUMTOREPART : $sumToRepart nbtradeLoose : ".$nbLoose. '\n';
         $sequence->repartValueOnUndone($this->tradeRepo, $this->tradePersister, $sumToRepart);
     }
     
-    public function looseMod6(Trade $trade, Sequence $sequence) {
+    public function checkHalfAmount(Sequence $sequence, Trade $trade, $halfAmount) {
+        if ($sequence->checkHalfTradeAndFull($this->tradeRepo, $this->tradePersister,  $halfAmount)){
+            $trade->setSequenceState(Trade::SEQSTATEDONE);
+            $this->tradePersister->persist($trade);
+        } else {
+            $trade->setAmount($halfAmount);
+            $trade->setSequenceState(Trade::SEQSTATEHALF);
+            $this->tradePersister->persist($trade);
+        }
+    }
+    
+    public function looseMod6(Trade $trade, Sequence $sequence, $nbLoose) {
         $trade->setSequenceState(Trade::SEQSTATEDONE);
         $this->tradePersister->persist($trade);
-        $sequence->setMultiLoose($sequence->getMultiLoose() - 1);
-        $this->sequencePersister->persist($sequence);
-        $sumToRepart = round($trade->getAmount() / $sequence->getMultiLoose(), 2);
+        echo "FULL SUMTOREPART : ".$trade->getAmount()." nbtradeLoose : ".($nbLoose - 1). '\n';
+        $sumToRepart = round($trade->getAmount() / ($nbLoose - 1), 2);
         $sequence->repartValueOnUndone($this->tradeRepo, $this->tradePersister, $sumToRepart);
     }
+    
+        public function looseMod7(Trade $trade, Sequence $sequence, $nbLoose) {
+        $this->sequencePersister->persist($sequence);
+        $halfAmount = round($trade->getAmount()/2, 2);
+        $sumToRepart = round($halfAmount/ $nbLoose, 2);// -1 pour retirer la première mise a ratrapper
+        echo "DEMI SUMTOREPART : $sumToRepart nbtradeLoose : ".$nb. '\n';
+        $sequence->repartValueOnUndone($this->tradeRepo, $this->tradePersister, $sumToRepart);
+    }
+    
+        public function looseMod8(Trade $trade, Sequence $sequence, $nbLoose) {
+        $this->looseMod5($trade, $sequence, $nbLoose);
+        $sumToRepart = $sequence->eraseSmallTrade();
+        $sequence->repartValueOnUndone($this->tradeRepo, $this->tradePersister, $sumToRepart);
+        
+    }
+    
+    
     //initialise les statut de trade à Done au passage en mode trinity pour ne pas avoir de conflit plus tard
     public function resetTradeStateForTrinity(Sequence $sequence) {
          $trades = $this->tradeRepo->getTradeForSequence($sequence);

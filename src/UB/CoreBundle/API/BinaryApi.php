@@ -9,6 +9,7 @@ use UB\CoreBundle\Repository\CurrencyRepository;
 use UB\CoreBundle\Repository\ParameterRepository;
 use UB\CoreBundle\Persister\TradePersister;
 use UB\CoreBundle\Persister\ParameterPersister;
+use UB\CoreBundle\Entity\Parameter;
 
 /**
  * Description of BinaryApi
@@ -49,6 +50,8 @@ class BinaryApi implements ApiInterface {
                             "duration_unit": "' . $unit . '",
                             "symbol": "' . $trade->getSymbole()->getName() . '"
                       }}');
+        $parameter = $this->parameterRepo->findOneBy(array('id' => Parameter::DEFAULT_ID));
+        $parameter->setIsActiveM1(true);
     }
 
     function miseBaisse($conn, Trade $trade) {
@@ -66,6 +69,8 @@ class BinaryApi implements ApiInterface {
                             "duration_unit": "' . $unit . '",
                             "symbol": "' . $trade->getSymbole()->getName() . '"
                       }}');
+        $parameter = $this->parameterRepo->findOneBy(array('id' => \UB\CoreBundle\Entity\Parameter::DEFAULT_ID));
+        $parameter->setIsActiveM1(true);
     }
 
     //demande les X dernier resultat

@@ -49,6 +49,11 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 print "Received: {$msg}\n";
                 $json = json_decode($msg, true);
                 if (isset($json['buy'])) {
+                $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
+                $parameterRepo = $this->getContainer()->get('parameter_repo');
+                $parameter = $parameterRepo->findOneById(1);
+                $parameter->setIsActiveM1(false);
+                $parameterPersister->persist($parameter);
                 // api save new trade
                     $trade = $this->api->saveNewTrade($json);
                     $this->ubAlgo->newTradeFromApi($trade->getId());
@@ -132,9 +137,13 @@ class PortalBinaryCommand extends ContainerAwareCommand
                     $symboleRepo = $this->getContainer()->get('symbole_repo');
                     $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(3);
                     $tradeRepo = $this->getContainer()->get('trade_repo');
+                    $parameterRepo = $this->getContainer()->get('parameter_repo');
+                    $parameter = $parameterRepo->findOneById(1);
+                    
                    
                     $symbole = $symboleRepo->findOneById(3); // 9 EURUSD /  3 VOL-25
-                    $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade());
+                    if(!$parameter->getIsActiveM1())
+                        $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade());
                // }
             });
              
@@ -178,6 +187,12 @@ class PortalBinaryCommand extends ContainerAwareCommand
          $this->api = $this->getContainer()->get('ub_core.binary_api');
          $this->ubAlgo = $this->getContainer()->get('ub_core.algo');
          $this->tradeSignalPersister = $this->getContainer()->get('ub_core.trade_signal_persister');
+         $parameterRepo = $this->getContainer()->get('parameter_repo');
+         $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
+                
+            $parameter = $parameterRepo->findOneById(1);
+            $parameter->setIsActiveM1(false);
+            $parameterPersister->persist($parameter);
          //init signal receive when the progam was off
         $this->ubAlgo->initTradeSignalBegin();
                 //mode portal

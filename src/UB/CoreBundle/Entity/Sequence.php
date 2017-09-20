@@ -390,18 +390,77 @@ class Sequence
     
         public function repartValueOnUndone(TradeRepository $tradeRepo, \UB\CoreBundle\Persister\TradePersister $tradePersister, $value) {
 
+        if ($this->getState() == Sequence::OPEN) {
+            $trades = $tradeRepo->findBySequence($this);
+            $i = 0;
+            foreach ($trades as $trade) {
+                // retourne la première mise 
+                if ($trade->getSequenceState() != Trade::SEQSTATEDONE) {
+                    if ($i > 0) {
+                        echo 'SUM REPART -> ' . $value . '\n';
+                        $trade->setAmount($trade->getAmount() + $value);
+                        $tradePersister->persist($trade);
+                    }
+                    $i++;
+                }
+            }
+        }
+        return NULL;
+    }
+    
+            public function eraseSmallTrade(TradeRepository $tradeRepo, \UB\CoreBundle\Persister\TradePersister $tradePersister) {
+
+        if ($this->getState() == Sequence::OPEN) {
+            $trades = $tradeRepo->findBySequence($this);
+            $i = 0;
+            foreach ($trades as $trade) {
+                // retourne la première mise 
+                if ($trade->getSequenceState() != Trade::SEQSTATEDONE) {
+                    if ($i > 0) {
+                        $trade->setSequenceState(Trade::SEQSTATEDONE);
+                        $tradePersister->persist($trade);
+                        return $trade->getAmount();
+                    }
+                    $i++;
+                }
+            }
+        }
+        return 0;
+    }
+
+    public function checkHalfTradeAndFull(TradeRepository $tradeRepo, \UB\CoreBundle\Persister\TradePersister $tradePersister, $value) {
+
         if ($this->getState() == Sequence::OPEN){  
             $trades = $tradeRepo->findBySequence($this);
               foreach ($trades as $trade) {
                   // retourne la première mise 
-                  if($trade->getSequenceState() == Trade::SEQSTATEUNDONE){
+                  if($trade->getSequenceState() == Trade::SEQSTATEHALF){
                     $trade->setAmount($trade->getAmount() + $value);
+                    $trade->setSequenceState(Trade::SEQSTATEUNDONE);
                     $tradePersister->persist($trade);
+                    return true;
                   }
               }
         }
-        return NULL;
+        return false;
     }
+    
+        public function getNbLooseEvo(TradeRepository $tradeRepo) {
+
+        if ($this->getState() == Sequence::OPEN) {
+            $trades = $tradeRepo->findBySequence($this);
+            $i = 0;
+            foreach ($trades as $trade) {
+                // retourne la première mise 
+                if ($trade->getSequenceState() != Trade::SEQSTATEDONE) {
+                    $i++;
+                }
+            }
+        }
+        echo "NBLOSSE TO DIVIDE ".($i-1)."\n";
+        return $i - 1;
+    }
+    
     
     public function isFinished(TradeRepository $tradeRepo) {
         echo "------ is Finished ----- \n";
@@ -412,6 +471,7 @@ class Sequence
                 return false;
             }
         }
+        $this->setTimeEnd(new \DateTime());
         $this->setState(Sequence::CLOSE);
         return true;
     }
