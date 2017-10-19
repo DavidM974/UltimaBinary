@@ -44,7 +44,8 @@ class TradeSignalPersister
         $signal->setIsTrade(0);
         $signal->setCategorySignal($categSignal);
         $signal->setName($categSignal->getName());
-        
+       // mode tendance
+        /*
         if ($trade->getContractType() == 'PUT' AND $trade->getState() == \UB\CoreBundle\Entity\Trade::STATELOOSE)
         {
             $signal->setContractType('CALL');
@@ -57,9 +58,20 @@ class TradeSignalPersister
         } else {
             $signal->setContractType('CALL');
         }
+         * 
+         */
+        
+        // Mode inversé
+        if ($trade->getContractType() == 'CALL')
+        {
+            $signal->setContractType('PUT');
+        } else {
+            $signal->setContractType('CALL');
+        }
         
         
-        /*
+        
+        /* 
         if (mt_rand(0, 99) < 50) {
             $signal->setContractType('CALL');
         } else {

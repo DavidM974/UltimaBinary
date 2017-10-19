@@ -127,7 +127,8 @@ class BinaryApi implements ApiInterface {
         $symbole = $this->symboleRepo->findOneBy(array('name' => $data['echo_req']['parameters']['symbol']));
         $currency = $this->currencyRepo->findOneBy(array('name' => $data['echo_req']['parameters']['currency']));
             
-        $trade = new Trade();
+        $trade = $this->tradeRepo->isTrading();
+        if ($trade == NULL) {echo "BUG pas de TRADE et RETUOR API DUN TRADE\n";exit();}
         $trade->setAmount($data['echo_req']['parameters']['amount']);
         $trade->setSymbole($symbole);
         $trade->setDuration($data['echo_req']['parameters']['duration']);

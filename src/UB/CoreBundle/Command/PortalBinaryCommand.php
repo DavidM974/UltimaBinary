@@ -52,11 +52,11 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
                 $parameterRepo = $this->getContainer()->get('parameter_repo');
                 $parameter = $parameterRepo->findOneById(1);
-                $parameter->setIsActiveM1(false);
+                
                 $parameterPersister->persist($parameter);
                 // api save new trade
                     $trade = $this->api->saveNewTrade($json);
-                    $this->ubAlgo->newTradeFromApi($trade->getId());
+                    $this->ubAlgo->updateBalance($trade);
                 }
                 if (isset($json['profit_table'])) {
                 // api getLastResult
@@ -142,8 +142,9 @@ class PortalBinaryCommand extends ContainerAwareCommand
                     
                    
                     $symbole = $symboleRepo->findOneById(3); // 9 EURUSD /  3 VOL-25
-                    if(!$parameter->getIsActiveM1())
+                    if($tradeRepo->isTrading() == NULL){
                         $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade());
+                    }
                // }
             });
              
@@ -191,7 +192,6 @@ class PortalBinaryCommand extends ContainerAwareCommand
          $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
                 
             $parameter = $parameterRepo->findOneById(1);
-            $parameter->setIsActiveM1(false);
             $parameterPersister->persist($parameter);
          //init signal receive when the progam was off
         $this->ubAlgo->initTradeSignalBegin();

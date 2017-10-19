@@ -116,16 +116,16 @@ class Parameter
     /**
      * @var int
      *
-     * @ORM\Column(name="probaJokerOn", type="boolean", nullable=true)
+     * @ORM\Column(name="talent", type="float", nullable=true)
      */
-    private $probaJokerOn;
+    private $talent;
 
     /**
      * @var int
      *
-     * @ORM\Column(name="jokerConsecutive", type="boolean", nullable=true)
+     * @ORM\Column(name="sumLooseTalent", type="float", nullable=true)
      */
-    private $jokerConsecutive;
+    private $sumLooseTalent;
     
     /**
      * @var float
@@ -462,51 +462,51 @@ class Parameter
     }
 
     /**
-     * Set probaJokerOn
+     * Set talent
      *
-     * @param integer $probaJokerOn
+     * @param float $talent
      *
      * @return Parameter
      */
-    public function setProbaJokerOn($probaJokerOn)
+    public function setTalent($talent)
     {
-        $this->probaJokerOn = $probaJokerOn;
+        $this->talent = $talent;
 
         return $this;
     }
 
     /**
-     * Get probaJokerOn
+     * Get talent
      *
-     * @return int
+     * @return float
      */
-    public function getProbaJokerOn()
+    public function getTalent()
     {
-        return $this->probaJokerOn;
+        return $this->talent;
     }
 
     /**
-     * Set jokerConsecutive
+     * Set sumLooseTalent
      *
-     * @param integer $jokerConsecutive
+     * @param integer $sumLooseTalent
      *
      * @return Parameter
      */
-    public function setJokerConsecutive($jokerConsecutive)
+    public function setSumLooseTalent($sumLooseTalent)
     {
-        $this->jokerConsecutive = $jokerConsecutive;
+        $this->sumLooseTalent = $sumLooseTalent;
 
         return $this;
     }
 
     /**
-     * Get jokerConsecutive
+     * Get sumLooseTalent
      *
      * @return int
      */
-    public function getJokerConsecutive()
+        public function getSumLooseTalent()
     {
-        return $this->jokerConsecutive;
+        return $this->sumLooseTalent;
     }
     
     /**
