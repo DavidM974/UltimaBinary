@@ -21,6 +21,7 @@ class Sequence
     const TRINITY = 'TRINITY';
     const THEOPHILE = 'THEOPHILE';
     const EVO = 'EVO';
+    const SECURE = 'SECURE';
     /**
      * @var int
      *
@@ -47,7 +48,7 @@ class Sequence
     /**
      * @var string
      *
-     * @ORM\Column(name="mode", type="string" , columnDefinition="ENUM('MG', 'TRINITY', 'THEOPHILE')")
+     * @ORM\Column(name="mode", type="string" , columnDefinition="ENUM('MG', 'EVO', 'SECURE')")
      */
     private $mode;
     /**
@@ -115,9 +116,9 @@ class Sequence
     /**
      * @var float
      *
-     * @ORM\Column(name="profit", type="float", nullable=true)
+     * @ORM\Column(name="sumToRecup", type="float", nullable=true)
      */
-    private $profit;
+    private $sumToRecup;
     
     
      /**
@@ -654,27 +655,27 @@ class Sequence
     }
     
      /**
-     * Set profit
+     * Set sumToRecup
      *
-     * @param integer $profit
+     * @param integer $sumToRecup
      *
      * @return Sequence
      */
-    public function setProfit($profit)
+    public function setSumToRecup($sumToRecup)
     {
-        $this->profit = $profit;
+        $this->sumToRecup = $sumToRecup;
 
         return $this;
     }
 
     /**
-     * Get profit
+     * Get sumToRecup
      *
      * @return int
      */
-    public function getProfit()
+    public function getSumToRecup()
     {
-        return $this->profit;
+        return $this->sumToRecup;
     }
     
      /**

@@ -86,6 +86,20 @@ function getLastWinTrade(Sequence $sequence = NULL) {
         return $result;
     }
     
+        public function getUndoneTradeOrNull($sequence) {
+         $qb = $this->createQueryBuilder('tr');
+ 
+        $result = $qb->select('tr')
+            ->Where('tr.sequenceState <> :state')
+            ->setParameter('state', \UB\CoreBundle\Entity\Trade::SEQSTATEDONE)
+            ->andWhere('tr.sequence = :seq')
+            ->setParameter('seq', $sequence)
+            ->addOrderBy('tr.signalTime', 'ASC')
+            ->getQuery()
+            ->getOneOrNullResult();
+        return $result;
+    }
+    
     public function isTrading() {
         $qb = $this->createQueryBuilder('tr')
                 ->Where('tr.state = :state')

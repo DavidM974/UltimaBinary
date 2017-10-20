@@ -18,12 +18,13 @@ class Trade
     const SEQSTATEUNDONE =      'UNDONE';
     const SEQSTATEHALF =        'HALF';
     const SEQSTATEDONE =        'DONE';
+    const SEQSTATESECURE =        'SECURE';
     const STATEWIN =            'WIN';
     const STATELOOSE =          'LOOSE';
     const STATETRADE =          'TRADE';
     const TYPECALL =            'CALL';
     const TYPEPUT =             'PUT';
-    
+ 
     
     /**
      * @var int
@@ -66,7 +67,7 @@ class Trade
     /**
      * @var string
      *
-     * @ORM\Column(name="sequence_state", type="string", columnDefinition="ENUM('FIRST','MG', 'LMG', 'UNDONE', 'DONE', 'HALF')")
+     * @ORM\Column(name="sequence_state", type="string", columnDefinition="ENUM('FIRST','MG', 'LMG', 'UNDONE', 'DONE', 'HALF', 'SECURE')")
      */
     private $sequenceState;
 

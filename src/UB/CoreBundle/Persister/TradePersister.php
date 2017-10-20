@@ -30,7 +30,7 @@ class TradePersister
         $this->em->flush();
     }
     
-    public function newTradeIntercale($amount, Trade $lastTrade) {
+    public function newTradeIntercale($amount, Trade $lastTrade, $half = false) {
         $trade = new Trade();
         $trade->setAmount($amount);
         $trade->setSymbole($lastTrade->getSymbole());
@@ -38,7 +38,11 @@ class TradePersister
         $trade->setCurrency($lastTrade->getCurrency());
         $trade->setContractType($lastTrade->getContractType());
         $trade->setState(Trade::STATELOOSE);
-        $trade->setSequenceState(Trade::SEQSTATEUNDONE);
+        if ($half){
+            $trade->setSequenceState(Trade::SEQSTATEHALF);
+        } else {
+            $trade->setSequenceState(Trade::SEQSTATEUNDONE);
+        }
         $trade->setSequence($lastTrade->getSequence());
         $trade->setIdBinary(random_int(100000, 1000000));
         $trade->setSignalTime(new \DateTime());

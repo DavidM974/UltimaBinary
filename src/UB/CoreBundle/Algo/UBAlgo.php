@@ -218,14 +218,27 @@ class UBAlgo {
             //New signal
             foreach ($listSignals as $signal) {
 
-                // récupère la prochaine valeur de mise
-                if(($this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
+                if(($this->getModeSequence() == Sequence::SECURE && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
+                    $rate = $this->getRateSignal($signal);
+                    echo "SECURE !!!!!!!!!!!!!!!!!!!!! \n";
+                    $amount = $this->getNextMiseSC($this->getBestRate($rate), $signal->getCategorySignal()->getId());
+                    if ($amount > 0) {
+                        $trade = $this->createNewTradeForApi($signal, $amount, Trade::SEQSTATESECURE);
+                        $sequence = $this->getSequenceForTrade($trade);
+                        // Link to the sequence and set to 1 the length
+                        $trade->setSequence($sequence);
+                        $this->tradePersister->persist($trade);
+                        // new api call with mise to send the trade
+                        $this->doMise($trade, $conn, $api);
+                    }
+                }
+                else if(($this->getModeSequence() == Sequence::EVO && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
                     $rate = $this->getRateSignal($signal);
                     $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
                     echo $amount." mise a ratrapper \n";      
                     if ($amount > 0) {
 
-                        $trade = $this->createNewTradeForApi($signal, $amount);
+                        $trade = $this->createNewTradeForApi($signal, $amount, Trade::SEQSTATEUNDONE);
                         $sequence = $this->getSequenceForTrade($trade);
                         // Link to the sequence and set to 1 the length
                         $trade->setSequence($sequence);
@@ -332,19 +345,23 @@ class UBAlgo {
         }
     }
 
-    public function createNewTradeForApi(TradeSignal $signal, $amount) {
+    public function createNewTradeForApi(TradeSignal $signal, $amount, $mode = NULL) {
 
         $parameter = $this->parameterRepo->findOneBy(array('id' => Parameter::DEFAULT_ID));
 
         $trade = new Trade();
-        if ($amount < 0.5) $amount = 0.5;
+        if ($amount < 0.38) $amount = 0.38;
         $trade->setAmount($amount);
         $trade->setSymbole($signal->getSymbole());
         $trade->setDuration($signal->getDuration());
         $trade->setCurrency($parameter->getCurrency());
         $trade->setContractType($signal->getContractType());
         $trade->setState(Trade::STATETRADE);
-        $trade->setSequenceState(Trade::SEQSTATEUNDONE);
+        if($mode == Trade::SEQSTATESECURE){
+            $trade->setSequenceState(Trade::SEQSTATESECURE);
+        } else {
+            $trade->setSequenceState(Trade::SEQSTATEUNDONE);
+        }
         $trade->setSignalTime(new \DateTime());
         return $trade;
     }
@@ -363,6 +380,29 @@ class UBAlgo {
             return $this->getNewMiseInit();
         }
     }
+    
+        public function getNextMiseSC($taux = NULL, $idCategSignal) {
+        //verifie si il y a une sequence ouverte
+        $this->parameter = $this->getLastParameter();
+        $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading($idCategSignal, $this->parameter->getMartinGaleSize());
+
+        if ($taux == NULL) {
+            $taux = $this->parameter->getDefaultRate();
+        }
+        foreach ($listSequence as $sequence) {
+            $sequence->isFinished($this->tradeRepo);
+            $this->sequencePersister->persist($sequence);
+            // $this->sequencesToExclude[] = $sequence;
+            return $this->calcMiseSecure($sequence, $taux);
+        }
+        if ($this->getNbSequenceOpen() <= UBAlgo::NB_SEQ - 1) {
+            echo "New mise Init-------------------- \n";
+            return $this->getNewMiseInit();
+        }
+
+        /* } */
+    }
+    
 
     public function getNextMise($taux = NULL, $idCategSignal) {
         //verifie si il y a une sequence ouverte
@@ -384,6 +424,19 @@ class UBAlgo {
         }
 
         /* } */
+    }
+    
+        public function calcMiseSecure(Sequence $sequence, $taux = NULL) {
+
+        echo"RECUP MISE SECURE  " . $sequence->getId() . "\n";
+        $mise = $sequence->getMise();
+
+        if ($mise > 0) {
+            return $mise;
+        } else {
+
+            throw new \Exception('- 1 Erreur BDD Sequence ouverte avec rien a ratrapper !');
+        }
     }
 
     public function calcMiseForSequence(Sequence $sequence, $taux = NULL) {
@@ -425,8 +478,11 @@ class UBAlgo {
                 }
             
         } else if ($trade->getState() == Trade::STATELOOSE && $trade->getSequenceState() != Trade::SEQSTATEDONE) {
-            $this->looseTrade($trade);
-
+            if ($trade->getSequence()->getMode() == Sequence::SECURE) {
+               $this->looseSecure($trade, $trade->getSequence()); 
+            } else {
+                $this->looseTrade($trade);
+            }
             /*
               if($this->parameter->getBalance() < 40) {
               echo "SECURITE COMPTE";
@@ -435,6 +491,17 @@ class UBAlgo {
              * 
              */
         }
+    }
+    
+    
+    public function looseSecure(Trade $trade, Sequence $sequence) {
+        $trade->setState(Trade::STATELOOSE);
+        $trade->setSequenceState(Trade::SEQSTATEDONE);
+        $this->tradePersister->persist($trade);
+        $sequence->setMultiLoose($sequence->getMultiLoose() + 1);
+        $sequence->setSumLooseTR($sequence->getSumLooseTR() + $trade->getAmount());
+        $this->sequencePersister->persist($sequence);
+        $this->checkEndTrinitySecure($sequence, $trade);
     }
 
     public function isLastTR(Sequence $sequence) {
@@ -452,12 +519,16 @@ class UBAlgo {
 
     public function winTrade(Trade $trade) {
         $sequence = $trade->getSequence();
-        $sequence->setMultiWin($sequence->getMultiWin()+1);
-        $this->sequencePersister->persist($sequence);
-        if ($this->isSequenceFinish($sequence, ($trade->getAmountRes() - $trade->getAmount()) )){return true;}
-        
-        $this->winTp($trade, $sequence);
-        
+        if ($this->isSequenceFinish($sequence, ($trade->getAmountRes() - $trade->getAmount()))) {
+            return true;
+        }
+        if ($sequence->getMode() == Sequence::EVO) {
+            echo "WIN EVO\n";
+            $this->winTp($trade, $sequence);
+        } else {
+            echo "WIN SECURE\n";
+            $this->winSecure($trade, $sequence);
+        }
         // je met à jours le statut du trade gagnant
         $trade->win();
         $this->tradePersister->persist($trade);
@@ -541,28 +612,85 @@ class UBAlgo {
 
     public function calcSumCatchUp(Trade $trade, Sequence $sequence) {
 
-        $profit = $this->floorDec($trade->getAmountRes() - ($sequence->getMise() / 0.98));
-        if ($profit > 0) {
-            $sequence->setProfit($sequence->getProfit() + $profit);
+        $sumToRecup = $this->floorDec($trade->getAmountRes() - ($sequence->getMise() / 0.98));
+        if ($sumToRecup > 0) {
+            $sequence->setSumToRecup($sequence->getSumToRecup() + $sumToRecup);
         }
         $this->sequencePersister->persist($sequence);
-        return $trade->getAmountRes() - $profit;
+        return $trade->getAmountRes() - $sumToRecup;
     }
 
     public function floorDec($nb) {
         return floor($nb * 100) / 100;
     }
+    
     public function winTp(Trade $trade, Sequence $sequence) {
          if ($sequence->getLength() > 1 && $trade->getAmountRes() >= $sequence->getNextAmountSequence($this->tradeRepo)) {
-            echo "Maj Trade non ratrape dans sequence  \n";
+            $this->updateLastUndoneTrade($sequence);
+            
+           // ($sequence->getMultiLoose() > 0)? $sequence->setMultiLoose($sequence->getMultiLoose() - 1): false;
+            //$this->sequencePersister->persist($sequence);
+        } else { // rien a rattraper dans cette sequence
+            echo "Rien a rattraper sequence Close\n";
+        }
+    }
+    
+    public function updateLastUndoneTrade(Sequence $sequence){
+        echo "Maj Trade non ratrape dans sequence  \n";
             $undoneTrade = $sequence->getNextUndoneTrade($this->tradeRepo);
             $undoneTrade->setSequenceState(Trade::SEQSTATEDONE);
             $this->tradePersister->persist($undoneTrade);
-            
-            ($sequence->getMultiLoose() > 0)? $sequence->setMultiLoose($sequence->getMultiLoose() - 1): false;
+    }
+    
+    public function isStillSecureMode(Sequence $sequence){
+            $undoneTrade = $this->tradeRepo->getUndoneTradeOrNull($sequence);
+            if ($undoneTrade != NULL) { // toujours en mode SECURE
+                return $undoneTrade->getAmount();
+            } else // plus en mode secure je rebascule en EVO
+            {
+                $sequence->setMode(Sequence::EVO);
+                $this->sequencePersister->persist($sequence);
+                return 0;
+            }
+    }
+    
+    public function winSecure(Trade $trade, Sequence $sequence) {
+    //incrementer sumwin        
+    // si somme gagner moins somme perdu sur ce bloque superieur à somme a recup cloture
+        $sequence->setMultiWin($sequence->getMultiWin() + 1);
+        $sequence->setSumWinTR($sequence->getSumWinTR() + $trade->getAmountRes());
+        $this->sequencePersister->persist($sequence);
+        if (($sequence->getSumWinTR() - $sequence->getSumLooseTR()) >= $sequence->getSumToRecup()) {
+            echo "fin du mode Secure pour 1 treau \n";
+            $this->updateLastUndoneTrade($sequence);
+            $amount = $this->isStillSecureMode($sequence);
+            $this->initSecureMode($sequence, $amount);
             $this->sequencePersister->persist($sequence);
-        } else { // rien a rattraper dans cette sequence
-            echo "Rien a rattraper sequence Close\n";
+        } else {
+                    $this->checkEndTrinitySecure($sequence, $trade);//check fin trinity Secure
+        }
+ 
+    }
+    
+    public function checkEndTrinitySecure(Sequence $sequence, Trade $trade) {
+        $length = $sequence->getMultiLoose() + $sequence->getMultiWin();
+        $sumLoose = $sequence->getSumLooseTR() - $sequence->getSumWinTR();
+        if ($length == 10) {
+            if ($sequence->getMultiLoose() == 5 && $sequence->getMultiWin() == 5 ){
+                $this->tradePersister->newTradeIntercale($sumLoose, $trade, TRUE);
+            } 
+            if ($sequence->getMultiLoose() == 6 && $sequence->getMultiWin() == 4 ){
+                // créer trade loose undone
+                $this->tradePersister->newTradeIntercale($sumLoose, $trade);
+            }
+            $this->initSecureMode($sequence, 0);
+        }
+        if ($length == 20 ){
+            // créer 2 trade loose undone
+            $amount = round($sumLoose/2,2);
+            $this->tradePersister->newTradeIntercale($amount, $trade);// 1
+            $this->tradePersister->newTradeIntercale($amount, $trade);// 2
+            $this->initSecureMode($sequence, 0);
         }
     }
     public function winMG(Trade $trade, Sequence $sequence) {
@@ -640,7 +768,6 @@ class UBAlgo {
         echo "LOOOOSE\n";
         $trade->setState(Trade::STATELOOSE);
         $sequence = $trade->getSequence();
-        $sequence->setMultiLoose($sequence->getMultiLoose() + 1);
         $this->looseTalent($trade, $trade->getSequence());
         $this->tradePersister->persist($trade);
         $nbLoose = $sequence->getNbLooseEvo($this->tradeRepo);
@@ -663,8 +790,35 @@ class UBAlgo {
             }
         }
         $this->looseTalent($trade, $trade->getSequence());
-
+        $this->checkSecureMode($sequence, $trade);  //appele la fonction qui initialialise la sequence en secure si necessaire
     }
+    
+    public function checkSecureMode(Sequence $sequence, Trade $trade){
+        // initialise la trnity secure
+        if($sequence->getSumToRecup() == 0) {
+            $this->initSecureMode($sequence, $trade->getAmount());
+        }
+        // si mise pas ratrappé je ne fais rien pour continuer a recuperer ma somme perdu
+    }
+    
+    public function initSecureMode(Sequence $sequence, $amount) {
+        if($amount > 0){
+            $sequence->setMode(Sequence::SECURE);
+        }
+        $sequence->setSumToRecup($amount);
+        $sequence->setMultiLoose(0);
+        $sequence->setMultiWin(0);
+        $sequence->setSumLooseTR(0);
+        $sequence->setSumWinTR(0);
+        if ($amount < 0.68 ){
+            $sequence->setMise(round(($amount/1.4),2));
+        }
+        else {
+        $sequence->setMise(round(($amount/1.5),2));    
+        }
+        $this->sequencePersister->persist($sequence);
+    }
+    
     
     public function looseTalent(Trade $trade, Sequence $sequence){
         if ($sequence->getLength() == 1 && $trade->getAmount() > UBAlgo::DEFAULT_MISE){
@@ -798,7 +952,7 @@ class UBAlgo {
         echo round(($amount / ($taux)) + 0.01, 2) . " ******  test taux " . $taux . " \n";
         return round(($amount / ($taux)) + 0.01, 2);
     }
-
+    
     public function calcEvoMise(Sequence $sequence, $taux) {
 
             echo "debug calc Evo id " . $sequence->getId() . "\n";
