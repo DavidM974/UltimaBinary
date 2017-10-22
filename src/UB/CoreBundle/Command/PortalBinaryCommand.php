@@ -93,7 +93,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $this->api->sendPing($conn);
             });*/
 
-            $loop->addPeriodicTimer(5, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(8, function(Timer $timer) use ( $conn) {
                 // api askLastResult
                  $this->api->askLastResult($conn);
             });

@@ -218,21 +218,7 @@ class UBAlgo {
             //New signal
             foreach ($listSignals as $signal) {
 
-                if(($this->getModeSequence() == Sequence::SECURE && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
-                    $rate = $this->getRateSignal($signal);
-                    echo "SECURE !!!!!!!!!!!!!!!!!!!!! \n";
-                    $amount = $this->getNextMiseSC($this->getBestRate($rate), $signal->getCategorySignal()->getId());
-                    if ($amount > 0) {
-                        $trade = $this->createNewTradeForApi($signal, $amount, Trade::SEQSTATESECURE);
-                        $sequence = $this->getSequenceForTrade($trade);
-                        // Link to the sequence and set to 1 the length
-                        $trade->setSequence($sequence);
-                        $this->tradePersister->persist($trade);
-                        // new api call with mise to send the trade
-                        $this->doMise($trade, $conn, $api);
-                    }
-                }
-                else if(($this->getModeSequence() == Sequence::EVO && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
+                if(($this->getModeSequence() == Sequence::EVO && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
                     $rate = $this->getRateSignal($signal);
                     $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
                     echo $amount." mise a ratrapper \n";      
@@ -246,7 +232,21 @@ class UBAlgo {
                         // new api call with mise to send the trade
                         $this->doMise($trade, $conn, $api);
                     }
-                } else {
+                } else if(($this->getModeSequence() == Sequence::SECURE && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ)) {
+                    $rate = $this->getRateSignal($signal);
+                    echo "SECURE !!!!!!!!!!!!!!!!!!!!! \n";
+                    $amount = $this->getNextMiseSC($this->getBestRate($rate), $signal->getCategorySignal()->getId());
+                    if ($amount > 0) {
+                        $trade = $this->createNewTradeForApi($signal, $amount, Trade::SEQSTATESECURE);
+                        $sequence = $this->getSequenceForTrade($trade);
+                        // Link to the sequence and set to 1 the length
+                        $trade->setSequence($sequence);
+                        $this->tradePersister->persist($trade);
+                        // new api call with mise to send the trade
+                        $this->doMise($trade, $conn, $api);
+                    }
+                }
+                else {
                     if (!$this->isTradingFinish())
                     echo "\n ----- IS TRADING FINISH FALSE \n";
                     if ($this->parameter->getIsActiveM1())
@@ -345,7 +345,7 @@ class UBAlgo {
         }
     }
 
-    public function createNewTradeForApi(TradeSignal $signal, $amount, $mode = NULL) {
+    public function createNewTradeForApi(TradeSignal $signal, $amount, $mode = Trade::SEQSTATEUNDONE) {
 
         $parameter = $this->parameterRepo->findOneBy(array('id' => Parameter::DEFAULT_ID));
 
@@ -643,11 +643,14 @@ class UBAlgo {
     }
     
     public function isStillSecureMode(Sequence $sequence){
+        echo "IS STILL SECURE \n";
             $undoneTrade = $this->tradeRepo->getUndoneTradeOrNull($sequence);
             if ($undoneTrade != NULL) { // toujours en mode SECURE
+                echo "YES \n";
                 return $undoneTrade->getAmount();
             } else // plus en mode secure je rebascule en EVO
             {
+                echo "NO \n";
                 $sequence->setMode(Sequence::EVO);
                 $this->sequencePersister->persist($sequence);
                 return 0;
@@ -663,9 +666,13 @@ class UBAlgo {
         if (($sequence->getSumWinTR() - $sequence->getSumLooseTR()) >= $sequence->getSumToRecup()) {
             echo "fin du mode Secure pour 1 treau \n";
             $this->updateLastUndoneTrade($sequence);
+            echo "fin du mode Secure pour 2 treau \n";
             $amount = $this->isStillSecureMode($sequence);
+            echo "fin du mode Secure pour 3 treau \n";
             $this->initSecureMode($sequence, $amount);
+            echo "fin du mode Secure pour 4 treau \n";
             $this->sequencePersister->persist($sequence);
+            echo "fin du mode Secure pour 5 treau \n";
         } else {
                     $this->checkEndTrinitySecure($sequence, $trade);//check fin trinity Secure
         }
@@ -676,23 +683,33 @@ class UBAlgo {
         $length = $sequence->getMultiLoose() + $sequence->getMultiWin();
         $sumLoose = $sequence->getSumLooseTR() - $sequence->getSumWinTR();
         if ($length == 10) {
-            if ($sequence->getMultiLoose() == 5 && $sequence->getMultiWin() == 5 ){
-                $this->tradePersister->newTradeIntercale($sumLoose, $trade, TRUE);
-            } 
-            if ($sequence->getMultiLoose() == 6 && $sequence->getMultiWin() == 4 ){
-                // créer trade loose undone
-                $this->tradePersister->newTradeIntercale($sumLoose, $trade);
+            if ($sequence->getMultiLoose() == 5 && $sequence->getMultiWin() == 5) {
+                $newTrade = $this->tradePersister->newTradeIntercale($sumLoose, $trade, TRUE);
+                $this->looseTrade($newTrade);
+                $amount = $this->isStillSecureMode($sequence);
+                $this->initSecureMode($sequence, $amount);
             }
-            $this->initSecureMode($sequence, 0);
+            if ($sequence->getMultiLoose() == 6 && $sequence->getMultiWin() == 4) {
+                // créer trade loose undone
+                $newTrade = $this->tradePersister->newTradeIntercale($sumLoose, $trade);
+                $this->looseTrade($newTrade);
+                $amount = $this->isStillSecureMode($sequence);
+                $this->initSecureMode($sequence, $amount);
+            }
         }
-        if ($length == 20 ){
+        if ($length == 20) {
             // créer 2 trade loose undone
-            $amount = round($sumLoose/2,2);
-            $this->tradePersister->newTradeIntercale($amount, $trade);// 1
-            $this->tradePersister->newTradeIntercale($amount, $trade);// 2
-            $this->initSecureMode($sequence, 0);
+            $amount = round($sumLoose / 2, 2);
+            $newTrade = $this->tradePersister->newTradeIntercale($amount, $trade); // 1
+            $this->looseTrade($newTrade);
+            $newTrade2 = $this->tradePersister->newTradeIntercale($amount, $trade); // 2
+            $this->looseTrade($newTrade2);
+            $tradeAmount = $this->isStillSecureMode($sequence);
+            echo "INIT secure \n";
+            $this->initSecureMode($sequence, $tradeAmount);
         }
     }
+
     public function winMG(Trade $trade, Sequence $sequence) {
 
         if ($this->parameter->isMgActive()) {
@@ -790,7 +807,9 @@ class UBAlgo {
             }
         }
         $this->looseTalent($trade, $trade->getSequence());
-        $this->checkSecureMode($sequence, $trade);  //appele la fonction qui initialialise la sequence en secure si necessaire
+        if ($sequence->getMode() == Sequence::EVO) {
+            $this->checkSecureMode($sequence, $trade);  //appele la fonction qui initialialise la sequence en secure si necessaire
+        }
     }
     
     public function checkSecureMode(Sequence $sequence, Trade $trade){
@@ -957,7 +976,9 @@ class UBAlgo {
 
             echo "debug calc Evo id " . $sequence->getId() . "\n";
             $trades = $this->tradeRepo->getTradeForSequence($sequence);
+            echo "DEBUG 1\n";
             $amount = 0;
+            
             foreach ($trades as $trade) {
                 if ($trade->getSequenceState() != Trade::SEQSTATEDONE && $trade->getState() != Trade::STATEWIN ) {
                     $amount += $trade->getAmount();
@@ -965,7 +986,8 @@ class UBAlgo {
                     break;
                 }
             }
-            // SECURITE si mise supérieur a 10 euro
+echo "DEBUG 2\n";            
+// SECURITE si mise supérieur a 10 euro
             $taux =  ($amount > 2)? 0.92 : $taux; // TODO transformer 10 en une variable avec un ration par rapport au compte
             // Securite last trade too big
             $nbLoose = $sequence->getNbLooseEvo($this->tradeRepo) + 1;
@@ -973,10 +995,11 @@ class UBAlgo {
                 $amountTmp = $sequence->getBalanceStart() - $this->parameter->getBalance() + ($sequence->getLength() * 0.035);
                 $amount = ($amountTmp < $amount)? $amountTmp : $amount;
             }
+            echo "DEBUG 3\n";
             if (round(($amount / ($taux)) + 0.01, 2)   < 0.5 && $amount > 0){
                 return 0.5;
             }
-
+echo "DEBUG 4\n";
         echo round(($amount / ($taux)) + 0.01, 2) . " ******  test taux " . $taux . " \n";
         return round(($amount / ($taux)) + 0.01, 2);
     }

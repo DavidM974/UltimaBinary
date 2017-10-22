@@ -61,9 +61,9 @@ function getLastWinTrade(Sequence $sequence = NULL) {
         if ($sequence != NULL) {
             $qb->Where('t.sequence = :seq')
                     ->setParameter('seq', $sequence)
-                    ->andWhere('tr.state = :state')
+                    ->andWhere('t.state = :state')
                     ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATELOOSE)
-                    ->andWhere('tr.sequenceState = :seqState')
+                    ->andWhere('t.sequenceState = :seqState')
                     ->setParameter('seqState', \UB\CoreBundle\Entity\Trade::SEQSTATEUNDONE);
         }
         return $qb->orderBy('t.signalTime', 'DESC')
@@ -86,20 +86,20 @@ function getLastWinTrade(Sequence $sequence = NULL) {
         return $result;
     }
     
-        public function getUndoneTradeOrNull($sequence) {
-         $qb = $this->createQueryBuilder('tr');
- 
-        $result = $qb->select('tr')
-            ->Where('tr.sequenceState <> :state')
-            ->setParameter('state', \UB\CoreBundle\Entity\Trade::SEQSTATEDONE)
-            ->andWhere('tr.sequence = :seq')
-            ->setParameter('seq', $sequence)
-            ->addOrderBy('tr.signalTime', 'ASC')
-            ->getQuery()
-            ->getOneOrNullResult();
-        return $result;
+        function getUndoneTradeOrNull(Sequence $sequence = NULL) {
+        $qb = $this->createQueryBuilder('t');
+        if ($sequence != NULL) {
+            $qb->Where('t.sequence = :seq')
+                    ->setParameter('seq', $sequence)
+                    ->andWhere('t.sequenceState = :seqState')
+                    ->setParameter('seqState', \UB\CoreBundle\Entity\Trade::SEQSTATEUNDONE);
+        }
+        return $qb->orderBy('t.signalTime', 'ASC')
+                        ->setMaxResults(1)
+                        ->getQuery()
+                        ->getOneOrNullResult();
     }
-    
+      
     public function isTrading() {
         $qb = $this->createQueryBuilder('tr')
                 ->Where('tr.state = :state')
