@@ -519,9 +519,9 @@ class UBAlgo {
 
     public function winTrade(Trade $trade) {
         $sequence = $trade->getSequence();
-        if ($this->isSequenceFinish($sequence, ($trade->getAmountRes() - $trade->getAmount()))) {
+        /*if ($this->isSequenceFinish($sequence, ($trade->getAmountRes() - $trade->getAmount()))) {
             return true;
-        }
+        }*/
         if ($sequence->getMode() == Sequence::EVO) {
             echo "WIN EVO\n";
             $this->winTp($trade, $sequence);
