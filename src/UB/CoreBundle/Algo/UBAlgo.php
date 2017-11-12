@@ -498,7 +498,6 @@ class UBAlgo {
         $trade->setState(Trade::STATELOOSE);
         $trade->setSequenceState(Trade::SEQSTATEDONE);
         $this->tradePersister->persist($trade);
-        $sequence->setMultiLoose($sequence->getMultiLoose() + 1);
         $sequence->setSumLooseTR($sequence->getSumLooseTR() + $trade->getAmount());
         $this->sequencePersister->persist($sequence);
         $this->checkEndTrinitySecure($sequence, $trade);
@@ -519,6 +518,7 @@ class UBAlgo {
 
     public function winTrade(Trade $trade) {
         $sequence = $trade->getSequence();
+        $sequence->setMultiWin($sequence->getMultiWin() + 1);
         /*if ($this->isSequenceFinish($sequence, ($trade->getAmountRes() - $trade->getAmount()))) {
             return true;
         }*/
@@ -532,6 +532,8 @@ class UBAlgo {
         // je met à jours le statut du trade gagnant
         $trade->win();
         $this->tradePersister->persist($trade);
+        $sequence->initMultiEveryTenTrade();
+        $this->sequencePersister->persist($sequence);
     }
 
     public function winTR(Trade $trade, Sequence $sequence) {
@@ -554,6 +556,7 @@ class UBAlgo {
         {
             $sequence->setState(Sequence::CLOSE);
             $sequence->setTimeEnd(new \DateTime());
+            $sequence->initMultiEveryTenTrade();
             $this->sequencePersister->persist($sequence);
             return true;
         }
@@ -660,43 +663,33 @@ class UBAlgo {
     public function winSecure(Trade $trade, Sequence $sequence) {
     //incrementer sumwin        
     // si somme gagner moins somme perdu sur ce bloque superieur à somme a recup cloture
-        $sequence->setMultiWin($sequence->getMultiWin() + 1);
+        
         $sequence->setSumWinTR($sequence->getSumWinTR() + $trade->getAmountRes());
         $this->sequencePersister->persist($sequence);
-        if (($sequence->getSumWinTR() - $sequence->getSumLooseTR()) >= $sequence->getSumToRecup()) {
-            echo "fin du mode Secure pour 1 treau \n";
-            $this->updateLastUndoneTrade($sequence);
-            echo "fin du mode Secure pour 2 treau \n";
-            $amount = $this->isStillSecureMode($sequence);
-            echo "fin du mode Secure pour 3 treau \n";
-            $this->initSecureMode($sequence, $amount);
-            echo "fin du mode Secure pour 4 treau \n";
-            $this->sequencePersister->persist($sequence);
-            echo "fin du mode Secure pour 5 treau \n";
-        } else {
-                    $this->checkEndTrinitySecure($sequence, $trade);//check fin trinity Secure
-        }
+        $this->checkEndTrinitySecure($sequence, $trade);//check fin trinity Secure
+        
  
     }
     
-    public function checkEndTrinitySecure(Sequence $sequence, Trade $trade) {
+    public function checkEndTrinitySecure(Sequence $sequence) {
         $length = $sequence->getMultiLoose() + $sequence->getMultiWin();
-        $sumLoose = $sequence->getSumLooseTR() - $sequence->getSumWinTR();
+        
         if ($length == 10) {
-            if ($sequence->getMultiLoose() == 5 && $sequence->getMultiWin() == 5) {
-                $newTrade = $this->tradePersister->newTradeIntercale($sumLoose, $trade, TRUE);
-                $this->looseTrade($newTrade);
-                $amount = $this->isStillSecureMode($sequence);
-                $this->initSecureMode($sequence, $amount);
+            if ($sequence->getSumWinTR() > $sequence->getSumLooseTR() && $this->parameter->getSumLooseTalent() > 0 ){
+                $sumWin = $sequence->getSumWinTR() - $sequence->getSumLooseTR();
+                $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() - $sumWin );
             }
-            if ($sequence->getMultiLoose() == 6 && $sequence->getMultiWin() == 4) {
-                // créer trade loose undone
-                $newTrade = $this->tradePersister->newTradeIntercale($sumLoose, $trade);
-                $this->looseTrade($newTrade);
-                $amount = $this->isStillSecureMode($sequence);
-                $this->initSecureMode($sequence, $amount);
+            if ($sequence->getSumWinTR() < $sequence->getSumLooseTR()) {
+               $sumLoose = $sequence->getSumLooseTR() - $sequence->getSumWinTR();
+               $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() + $sumLoose ); 
             }
-        }
+            if ($sequence->getStatTenLastTrade()>= 50) {
+                $this->initSecureMode($sequence);
+                $sequence->setMode(Sequence::EVO);
+                $this->sequencePersister->persist($sequence);
+            }
+            $this->parameterPersister->persist($this->parameter);
+        }/*
         if ($length == 20) {
             // créer 2 trade loose undone
             $amount = round($sumLoose / 2, 2);
@@ -707,7 +700,7 @@ class UBAlgo {
             $tradeAmount = $this->isStillSecureMode($sequence);
             echo "INIT secure \n";
             $this->initSecureMode($sequence, $tradeAmount);
-        }
+        }*/
     }
 
     public function winMG(Trade $trade, Sequence $sequence) {
@@ -785,6 +778,7 @@ class UBAlgo {
         echo "LOOOOSE\n";
         $trade->setState(Trade::STATELOOSE);
         $sequence = $trade->getSequence();
+        $sequence->setMultiLoose($sequence->getMultiLoose() + 1);
         $this->looseTalent($trade, $trade->getSequence());
         $this->tradePersister->persist($trade);
         $nbLoose = $sequence->getNbLooseEvo($this->tradeRepo);
@@ -807,34 +801,30 @@ class UBAlgo {
             }
         }
         $this->looseTalent($trade, $trade->getSequence());
+        // 
+
         if ($sequence->getMode() == Sequence::EVO) {
-            $this->checkSecureMode($sequence, $trade);  //appele la fonction qui initialialise la sequence en secure si necessaire
+            $this->checkSecureMode($sequence);  //appele la fonction qui initialialise la sequence en secure si necessaire
         }
+        $sequence->initMultiEveryTenTrade();
+        $this->sequencePersister->persist($sequence);
     }
     
-    public function checkSecureMode(Sequence $sequence, Trade $trade){
+    public function checkSecureMode(Sequence $sequence){
         // initialise la trnity secure
-        if($sequence->getSumToRecup() == 0) {
-            $this->initSecureMode($sequence, $trade->getAmount());
+        if($sequence->getMultiLoose() >= 4 && $sequence->getMultiWin() == 0 || $sequence->getStatTenLastTrade() < 50) {
+            $this->initSecureMode($sequence);
         }
         // si mise pas ratrappé je ne fais rien pour continuer a recuperer ma somme perdu
     }
     
-    public function initSecureMode(Sequence $sequence, $amount) {
-        if($amount > 0){
-            $sequence->setMode(Sequence::SECURE);
-        }
-        $sequence->setSumToRecup($amount);
-        $sequence->setMultiLoose(0);
-        $sequence->setMultiWin(0);
+    public function initSecureMode(Sequence $sequence) {
+
+        $sequence->setMode(Sequence::SECURE);
+        $sequence->setSumToRecup(0);
         $sequence->setSumLooseTR(0);
         $sequence->setSumWinTR(0);
-        if ($amount < 0.68 ){
-            $sequence->setMise(round(($amount/1.4),2));
-        }
-        else {
-        $sequence->setMise(round(($amount/1.5),2));    
-        }
+        $sequence->setMise(0.35);
         $this->sequencePersister->persist($sequence);
     }
     

@@ -702,6 +702,21 @@ class Sequence
         return $this->mise;
     }
  
+    public function getStatTenLastTrade(){
+        $nbTRade = $this->getMultiLoose() + $this->getMultiWin();
+        if ( $nbTRade >= 7){
+            return ($this->getMultiWin()/($nbTRade/100));
+        } else {
+            return 50; // si pas suffisemant de trade je considère que je suis à 50%
+        }
+    }
+    
+    public function initMultiEveryTenTrade() {
+        if ($this->getMultiLoose() + $this->getMultiWin() == 10) {
+            $this->setMultiLoose(0);
+            $this->setMultiWin(0);
+        }
+    }
 
 }
 
