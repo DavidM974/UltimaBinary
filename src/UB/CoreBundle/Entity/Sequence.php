@@ -20,6 +20,7 @@ class Sequence
     const MG = 'MG';
     const TRINITY = 'TRINITY';
     const THEOPHILE = 'THEOPHILE';
+    const REVERSE = 'REVERSE';
     const EVO = 'EVO';
     const SECURE = 'SECURE';
     /**
@@ -48,7 +49,7 @@ class Sequence
     /**
      * @var string
      *
-     * @ORM\Column(name="mode", type="string" , columnDefinition="ENUM('MG', 'EVO', 'SECURE')")
+     * @ORM\Column(name="mode", type="string" , columnDefinition="ENUM('MG', 'EVO', 'SECURE', 'THEOPHILE', 'REVERSE')")
      */
     private $mode;
     /**

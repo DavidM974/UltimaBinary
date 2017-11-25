@@ -214,43 +214,19 @@ class UBAlgo {
         //check if new result
         if (!empty($listSignals)) {
             echo "non empty list signal \n";
-
             //New signal
             foreach ($listSignals as $signal) {
-
-                if(($this->getModeSequence() == Sequence::EVO && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
-                    $rate = $this->getRateSignal($signal);
-                    $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
-                    echo $amount." mise a ratrapper \n";      
-                    if ($amount > 0) {
-
-                        $trade = $this->createNewTradeForApi($signal, $amount, Trade::SEQSTATEUNDONE);
-                        $sequence = $this->getSequenceForTrade($trade);
-                        // Link to the sequence and set to 1 the length
-                        $trade->setSequence($sequence);
-                        $this->tradePersister->persist($trade);
-                        // new api call with mise to send the trade
-                        $this->doMise($trade, $conn, $api);
-                    }
-                } else if(($this->getModeSequence() == Sequence::SECURE && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ)) {
-                    $rate = $this->getRateSignal($signal);
-                    echo "SECURE !!!!!!!!!!!!!!!!!!!!! \n";
-                    $amount = $this->getNextMiseSC($this->getBestRate($rate), $signal->getCategorySignal()->getId());
-                    if ($amount > 0) {
-                        $trade = $this->createNewTradeForApi($signal, $amount, Trade::SEQSTATESECURE);
-                        $sequence = $this->getSequenceForTrade($trade);
-                        // Link to the sequence and set to 1 the length
-                        $trade->setSequence($sequence);
-                        $this->tradePersister->persist($trade);
-                        // new api call with mise to send the trade
-                        $this->doMise($trade, $conn, $api);
-                    }
-                }
-                else {
+                if (($this->getModeSequence() == Sequence::THEOPHILE && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
+                    $this->execNewSignal($conn, $api, $signal);
+                } else if (($this->getModeSequence() == Sequence::EVO && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ)) {
+                    $this->execNewSignal($conn, $api, $signal);
+                } else if (($this->getModeSequence() == Sequence::SECURE && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ)) {
+                    $this->execNewSignalSecure($conn, $api, $signal);
+                } else {
                     if (!$this->isTradingFinish())
-                    echo "\n ----- IS TRADING FINISH FALSE \n";
+                        echo "\n ----- IS TRADING FINISH FALSE \n";
                     if ($this->parameter->getIsActiveM1())
-                    echo "\n ----- IS ACTIVE M1 RETOUR API 1 \n";
+                        echo "\n ----- IS ACTIVE M1 RETOUR API 1 \n";
                 }
                 $signal->setIsTrade(true);
                 $this->tradeSignalPersister->persist($signal);
@@ -258,7 +234,38 @@ class UBAlgo {
             $this->sequencesToExclude = Array();
         }
     }
+
+    public function execNewSignal($conn, $api, $signal) {
+        $rate = $this->getRateSignal($signal);
+        $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
+        echo $amount . " mise a ratrapper \n";
+        if ($amount > 0) {
+
+            $trade = $this->createNewTradeForApi($signal, $amount, Trade::SEQSTATEUNDONE);
+            $sequence = $this->getSequenceForTrade($trade);
+            // Link to the sequence and set to 1 the length
+            $trade->setSequence($sequence);
+            $this->tradePersister->persist($trade);
+            // new api call with mise to send the trade
+            $this->doMise($trade, $conn, $api);
+        }
+    }
     
+    public function execNewSignalSecure($conn, $api, $signal) {
+        $rate = $this->getRateSignal($signal);
+        echo "SECURE !!!!!!!!!!!!!!!!!!!!! \n";
+        $amount = $this->getNextMiseSC($this->getBestRate($rate), $signal->getCategorySignal()->getId());
+        if ($amount > 0) {
+            $trade = $this->createNewTradeForApi($signal, $amount, Trade::SEQSTATESECURE);
+            $sequence = $this->getSequenceForTrade($trade);
+            // Link to the sequence and set to 1 the length
+            $trade->setSequence($sequence);
+            $this->tradePersister->persist($trade);
+            // new api call with mise to send the trade
+            $this->doMise($trade, $conn, $api);
+        }
+    }
+
     public function doMise(Trade $trade, $conn, $api) {
         $this->parameterPersister->persist($this->parameter);
         $this->entityManager->detach($this->parameter);
@@ -444,9 +451,15 @@ class UBAlgo {
         if ($taux == NULL) {
             $taux = $this->parameter->getDefaultRate();
         }
+        if ($sequence->getMode() == Sequence::EVO) {
         echo"CALC MISE EVO  " . $sequence->getId() . "\n";
         $mise = $this->calcEvoMise($sequence, $taux);
-
+        }elseif ($sequence->getMode() == Sequence::THEOPHILE) {
+            $mise = $this->calcThMise($sequence, $taux);
+        } elseif ($sequence->getMode() == Sequence::REVERSE) {
+        }
+        
+        
         if ($mise > 0) {
             return $mise;
         } else {
@@ -491,6 +504,11 @@ class UBAlgo {
              * 
              */
         }
+        if($trade->getSequence()->getLength() >= 6){ // change de mode une fois que j'ai attein le palier de 6
+            $sequence = $trade->getSequence();
+            $sequence->setMode(Sequence::EVO);
+            $this->sequencePersister->persist($sequence);
+        }
     }
     
     
@@ -522,7 +540,10 @@ class UBAlgo {
         /*if ($this->isSequenceFinish($sequence, ($trade->getAmountRes() - $trade->getAmount()))) {
             return true;
         }*/
-        if ($sequence->getMode() == Sequence::EVO) {
+        if ($sequence->getMode() == Sequence::THEOPHILE) {
+            echo "WIN THEOP\n";
+         $this->martinGWin($trade, $sequence);
+        } if ($sequence->getMode() == Sequence::EVO) {
             echo "WIN EVO\n";
             $this->winTp($trade, $sequence);
         } else {
@@ -802,10 +823,10 @@ class UBAlgo {
         }
         $this->looseTalent($trade, $trade->getSequence());
         // 
-
+/*
         if ($sequence->getMode() == Sequence::EVO) {
             $this->checkSecureMode($sequence);  //appele la fonction qui initialialise la sequence en secure si necessaire
-        }
+        }*/
         $sequence->initMultiEveryTenTrade();
         $this->sequencePersister->persist($sequence);
     }
@@ -959,6 +980,25 @@ class UBAlgo {
             $amount = $sequence->getNextAmountSequenceMg($this->tradeRepo);
         }
         echo round(($amount / ($taux)) + 0.01, 2) . " ******  test taux " . $taux . " \n";
+        return round(($amount / ($taux)) + 0.01, 2);
+    }
+    
+        public function calcThMise(Sequence $sequence, $taux) {
+            echo "debug calc nextMg id " . $sequence->getId() . "\n";
+            $trades = $this->tradeRepo->getTradeForSequence($sequence);
+            $amount = 0;
+            $i = 0;
+            foreach ($trades as $trade) {
+                if ($i == $this->parameter->getMartingaleSize()) {
+                    break;
+                }
+                if ($trade->getSequenceState() != Trade::SEQSTATEDONE && $trade->getState() != Trade::STATEWIN) {
+                    $amount += $trade->getAmount();
+                    echo "recupère la valeure a recup " . $amount . "\n";
+                    $i++;
+                }
+            }
+        echo round(($amount / ($taux)) + 0.01, 2) . " ****** THEOPHILE test taux " . $taux . " \n";
         return round(($amount / ($taux)) + 0.01, 2);
     }
     
