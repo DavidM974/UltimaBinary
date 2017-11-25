@@ -216,7 +216,7 @@ class UBAlgo {
             echo "non empty list signal \n";
             //New signal
             foreach ($listSignals as $signal) {
-                if (($this->getModeSequence() == Sequence::THEOPHILE && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
+                if (($this->getModeSequence() == Sequence::REVERSE && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
                     $this->execNewSignal($conn, $api, $signal);
                 } else if (($this->getModeSequence() == Sequence::EVO && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ)) {
                     $this->execNewSignal($conn, $api, $signal);
@@ -454,9 +454,9 @@ class UBAlgo {
         if ($sequence->getMode() == Sequence::EVO) {
         echo"CALC MISE EVO  " . $sequence->getId() . "\n";
         $mise = $this->calcEvoMise($sequence, $taux);
-        }elseif ($sequence->getMode() == Sequence::THEOPHILE) {
-            $mise = $this->calcThMise($sequence, $taux);
-        } elseif ($sequence->getMode() == Sequence::REVERSE) {
+        }elseif ($sequence->getMode() == Sequence::REVERSE) {
+            $mise = $this->calcReverseMise($sequence, $taux);
+        } elseif ($sequence->getMode() == Sequence::THEOPHILE) {
         }
         
         
@@ -503,12 +503,12 @@ class UBAlgo {
               }
              * 
              */
-        }
+        }/*
         if($trade->getSequence()->getLength() >= 6){ // change de mode une fois que j'ai attein le palier de 6
             $sequence = $trade->getSequence();
             $sequence->setMode(Sequence::EVO);
             $this->sequencePersister->persist($sequence);
-        }
+        }*/
     }
     
     
@@ -540,7 +540,7 @@ class UBAlgo {
         /*if ($this->isSequenceFinish($sequence, ($trade->getAmountRes() - $trade->getAmount()))) {
             return true;
         }*/
-        if ($sequence->getMode() == Sequence::THEOPHILE) {
+        if ($sequence->getMode() == Sequence::REVERSE) {
             echo "WIN THEOP\n";
          $this->martinGWin($trade, $sequence);
         } if ($sequence->getMode() == Sequence::EVO) {
@@ -802,6 +802,7 @@ class UBAlgo {
         $sequence->setMultiLoose($sequence->getMultiLoose() + 1);
         $this->looseTalent($trade, $trade->getSequence());
         $this->tradePersister->persist($trade);
+        /*
         $nbLoose = $sequence->getNbLooseEvo($this->tradeRepo);
         if ($nbLoose > 3 && $nbLoose < 7) {
             if ($nbLoose % 3 == 1) {
@@ -820,7 +821,7 @@ class UBAlgo {
             if ($nbLoose % 2 == 0) {
                 $this->looseMod8($trade, $sequence, $nbLoose);
             }
-        }
+        }*/
         $this->looseTalent($trade, $trade->getSequence());
         // 
 /*
@@ -983,11 +984,29 @@ class UBAlgo {
         return round(($amount / ($taux)) + 0.01, 2);
     }
     
-        public function calcThMise(Sequence $sequence, $taux) {
-            echo "debug calc nextMg id " . $sequence->getId() . "\n";
-            $trades = $this->tradeRepo->getTradeForSequence($sequence);
-            $amount = 0;
-            $i = 0;
+        public function calcReverseMise(Sequence $sequence, $taux) {
+        echo "debug calc nextMg id " . $sequence->getId() . "\n";
+        $trades = $this->tradeRepo->getTradeForSequence($sequence);
+        $amount = 0;
+        $i = 0;
+        $alreadyWin = 0;
+        
+         foreach ($trades as $trade) {
+                if ($trade->getState() == Trade::STATEWIN) {
+                    $alreadyWin = 1;
+                    break;
+                }
+            }
+        
+        if ($alreadyWin == 0) {
+            foreach ($trades as $trade) {
+                if ($trade->getSequenceState() != Trade::SEQSTATEDONE && $trade->getState() != Trade::STATEWIN) {
+                    $amount += $trade->getAmount();
+                    echo "# 1 #######  recupère la valeure a recup " . $amount . "\n";
+                    break;
+                }
+            }
+        } else {
             foreach ($trades as $trade) {
                 if ($i == $this->parameter->getMartingaleSize()) {
                     break;
@@ -998,10 +1017,11 @@ class UBAlgo {
                     $i++;
                 }
             }
-        echo round(($amount / ($taux)) + 0.01, 2) . " ****** THEOPHILE test taux " . $taux . " \n";
+        }
+        echo round(($amount / ($taux)) + 0.01, 2) . " ****** REVERSE test taux " . $taux . " \n";
         return round(($amount / ($taux)) + 0.01, 2);
     }
-    
+
     public function calcEvoMise(Sequence $sequence, $taux) {
 
             echo "debug calc Evo id " . $sequence->getId() . "\n";
