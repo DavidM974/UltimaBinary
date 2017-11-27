@@ -109,6 +109,18 @@ function getLastWinTrade(Sequence $sequence = NULL) {
                 ->getOneOrNullResult();
         return $qb;
     }
+    
+    public function getTradeWithNoIdBinary() {
+        $qb = $this->createQueryBuilder('tr')
+                ->Where('tr.state = :state')
+                ->andWhere('tr.idBinary is NULL')
+                ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATETRADE)
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
+
+        return $qb;
+    }
 
     public function getLooseTrades($sequence) {
         $qb = $this->createQueryBuilder('tr');

@@ -478,9 +478,9 @@ class Sequence
         return true;
     }
     
-    public function getSumWin() {
+    public function getSumWin(TradeRepository $tradeRepo) {
         $sum = 0;
-        $trades = $this->getTrades();
+         $trades = $tradeRepo->getTradeForSequence($this);
         foreach ($trades as $trade) {
             // retourne la première mise 
             if ($trade->getState() == Trade::STATEWIN) {
@@ -490,9 +490,9 @@ class Sequence
         return $sum;
     }
     
-    public function getSumLoose() {
+    public function getSumLoose(TradeRepository $tradeRepo) {
         $sum = 0;
-        $trades = $this->getTrades();
+        $trades = $tradeRepo->getTradeForSequence($this);
         foreach ($trades as $trade) {
             // retourne la première mise 
             if ($trade->getState() == Trade::STATELOOSE && $trade->getSequenceState() != Trade::SEQSTATEDONE) {

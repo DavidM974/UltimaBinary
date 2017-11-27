@@ -54,7 +54,8 @@ class UBAlgo {
     private $sequencesToExclude;
     private $winOrange;
 
-    const DEFAULT_MISE = 0.50;
+    const DEFAULT_MISE = 0.40;
+    const MISE_RECUP = 2;
     const NB_SEQ = 1;
 
     const MODE_VERT = 0.025;
@@ -357,7 +358,7 @@ class UBAlgo {
         $parameter = $this->parameterRepo->findOneBy(array('id' => Parameter::DEFAULT_ID));
 
         $trade = new Trade();
-        if ($amount < 0.38) $amount = 0.38;
+        if ($amount < 0.38) $amount = UBAlgo::DEFAULT_MISE;
         $trade->setAmount($amount);
         $trade->setSymbole($signal->getSymbole());
         $trade->setDuration($signal->getDuration());
@@ -474,7 +475,7 @@ class UBAlgo {
             echo "Wintrade ! \n";
             $this->winTrade($trade);
             echo "Update balance ! \n";
-
+/*
             if ($trade->getSequence()->getLength() == 1 && $trade->getAmount() == UBAlgo::DEFAULT_MISE) {
                 echo "TALENT 1\n";
                 $this->parameter->setTalent($trade->getAmountRes());
@@ -483,7 +484,7 @@ class UBAlgo {
                 echo "TALENT 0\n";
                 $this->parameter->setTalent(0);
                 $this->parameterPersister->persist($this->parameter);
-            }
+            }*/
             $this->parameter->setBalance($this->parameter->getBalance() + $trade->getAmount() + $trade->getAmountRes());
             $this->parameterPersister->persist($this->parameter);
             if (!$this->isSequenceFinish($trade->getSequence())) {
@@ -505,13 +506,15 @@ class UBAlgo {
         }
         $sequence = $trade->getSequence();
 
-        if ($sequence->getLength() == 10) {
+        if ($sequence->getLength() >= 7) {
             $this->checkStatSequenceTen($sequence);
         }
+        
 
         if ($sequence->getLength() == 12) {
             $sequence->setState(Sequence::CLOSE);
             $this->sequencePersister->persist($sequence);
+            $this->addSumLoose($sequence);
         }
 
 
@@ -526,19 +529,32 @@ class UBAlgo {
     }
 
     public function checkStatSequenceTen(Sequence $sequence) {
+        if ($this->getStatLooseSequence($sequence) >= 80) {
+            $sequence->setState(Sequence::CLOSE);
+            $this->sequencePersister->persist($sequence);
+            $this->addSumLoose($sequence);
+        }
+    }
+    
+    public function getStatLooseSequence(Sequence $sequence) {
         $trades = $this->tradeRepo->getTradeForSequence($sequence);
         $nbLoose = 0;
+        $nbTrade = 0;
 
         foreach ($trades as $trade) {
             if ($trade->getState() == Trade::STATELOOSE) {
                 $nbLoose++;
             }
+            $nbTrade++;
         }
-        
-        if ($nbLoose >= 8) {
-            $sequence->setState(Sequence::CLOSE);
-            $this->sequencePersister->persist($sequence);
-        }
+        return $nbLoose / ($nbTrade/100);
+    }
+
+
+    public function addSumLoose(Sequence $sequence) {
+        $sumLoose = $sequence->getSumLoose($this->tradeRepo) - $sequence->getSumWin($this->tradeRepo);
+        $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() + $sumLoose ); 
+        $this->parameterPersister->persist($this->parameter);
     }
 
     public function looseSecure(Trade $trade, Sequence $sequence) {
@@ -573,7 +589,7 @@ class UBAlgo {
             echo "WIN REVERSE\n";
          $this->martinGWin($trade, $sequence);
          $this->fusionReverseLoose($sequence, $trade);
-        } if ($sequence->getMode() == Sequence::EVO) {
+        } else if ($sequence->getMode() == Sequence::EVO) {
             echo "WIN EVO\n";
             $this->winTp($trade, $sequence);
         } else {
@@ -856,7 +872,7 @@ class UBAlgo {
         $trade->setState(Trade::STATELOOSE);
         $sequence = $trade->getSequence();
         $sequence->setMultiLoose($sequence->getMultiLoose() + 1);
-        $this->looseTalent($trade, $trade->getSequence());
+        //$this->looseTalent($trade, $trade->getSequence());
         $this->tradePersister->persist($trade);
         /*
         $nbLoose = $sequence->getNbLooseEvo($this->tradeRepo);
@@ -878,7 +894,7 @@ class UBAlgo {
                 $this->looseMod8($trade, $sequence, $nbLoose);
             }
         }*/
-        $this->looseTalent($trade, $trade->getSequence());
+        //$this->looseTalent($trade, $trade->getSequence());
         // 
 /*
         if ($sequence->getMode() == Sequence::EVO) {
@@ -994,21 +1010,17 @@ class UBAlgo {
     
     public function getNewMiseInit() {
 
-        $balance = ($this->parameter->getBalance() - 400000);
 
-        if($this->parameter->getTalent()) {
-            echo "compte : $balance \n";
-            $talent = $this->parameter->getTalent();
-            $this->parameter->setTalent(0);
+        $mise = 0;
+        if ($this->parameter->getSumLooseTalent() > 0) {
+            $mise += UBAlgo::MISE_RECUP;
+            $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() - UBAlgo::MISE_RECUP);
             $this->parameterPersister->persist($this->parameter);
-                return UBAlgo::DEFAULT_MISE ;//TODO + $talent ;
-            //return round(($balance * 0.001) /2, 2);
-            //return UBAlgo::DEFAULT_MISE;
-            //return $this->calcMise(NULL, $this->getMiseStartToRecup()/3);
-        } else {
-             return UBAlgo::DEFAULT_MISE;
-            //return $this->calcMise(NULL, $this->getMiseStartToRecup()/3);
         }
+
+
+             return UBAlgo::DEFAULT_MISE + $mise;
+  
     }
 
     public function calcMise($taux, $amount) {
@@ -1047,36 +1059,42 @@ class UBAlgo {
         $i = 0;
         $alreadyWin = 0;
         /*
-         foreach ($trades as $trade) {
-                if ($trade->getState() == Trade::STATEWIN) {
-                    $alreadyWin = 1;
-                    break;
-                }
+          foreach ($trades as $trade) {
+          if ($trade->getState() == Trade::STATEWIN) {
+          $alreadyWin = 1;
+          break;
+          }
+          }
+
+          if ($alreadyWin == 0) { */
+        foreach ($trades as $trade) {
+            if ($trade->getSequenceState() != Trade::SEQSTATEDONE && $trade->getState() != Trade::STATEWIN) {
+                $amount += $trade->getAmount();
+                echo "# 1 #######  recupère la valeure a recup " . $amount . "\n";
+                break;
             }
-        
-        if ($alreadyWin == 0) {*/
-            foreach ($trades as $trade) {
-                if ($trade->getSequenceState() != Trade::SEQSTATEDONE && $trade->getState() != Trade::STATEWIN) {
-                    $amount += $trade->getAmount();
-                    echo "# 1 #######  recupère la valeure a recup " . $amount . "\n";
-                    break;
-                }
-            }
-            /*
-        } else {
-            foreach ($trades as $trade) {
-                if ($i == $this->parameter->getMartingaleSize()) {
-                    break;
-                }
-                if ($trade->getSequenceState() != Trade::SEQSTATEDONE && $trade->getState() != Trade::STATEWIN) {
-                    $amount += $trade->getAmount();
-                    echo "recupère la valeure a recup " . $amount . "\n";
-                    $i++;
-                }
-            }
-        }*/
-        echo round(($amount / ($taux)) + 0.01, 2) . " ****** REVERSE test taux " . $taux . " \n";
-        return round(($amount / ($taux)) + 0.01, 2);
+        }
+        /*
+          } else {
+          foreach ($trades as $trade) {
+          if ($i == $this->parameter->getMartingaleSize()) {
+          break;
+          }
+          if ($trade->getSequenceState() != Trade::SEQSTATEDONE && $trade->getState() != Trade::STATEWIN) {
+          $amount += $trade->getAmount();
+          echo "recupère la valeure a recup " . $amount . "\n";
+          $i++;
+          }
+          }
+          } */
+        $mise = round(($amount / ($taux)) + 0.01, 2);
+        if ($this->parameter->getSumLooseTalent() > 0 && !($sequence->getLength() >= 5 && $this->getStatLooseSequence($sequence) >= 90 )) {
+            $mise += UBAlgo::MISE_RECUP;
+            $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() - UBAlgo::MISE_RECUP);
+            $this->parameterPersister->persist($this->parameter);
+        }
+        echo $mise . " ****** REVERSE test taux " . $taux . " \n";
+        return $mise;
     }
 
     public function calcEvoMise(Sequence $sequence, $taux) {

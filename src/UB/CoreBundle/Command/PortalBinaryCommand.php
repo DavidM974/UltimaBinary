@@ -120,13 +120,32 @@ class PortalBinaryCommand extends ContainerAwareCommand
             $entityManager->detach($parameter);*/
             });
             
-            $loop->addPeriodicTimer(300, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(63, function(Timer $timer) use ( $conn) {
                 // Mise à jours du taux des differentes devises
+                /*
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
                 $listSymbol = $symboleRepo->findAll();
                 foreach ($listSymbol as $symbol) {
                     $this->api->UpdateRate($conn, 'CALL', $symbol->getName());
                     $this->api->UpdateRate($conn, 'PUT', $symbol->getName());
+                }*/
+                $tradeRepo = $this->getContainer()->get('trade_repo');
+                $trade = $tradeRepo->getTradeWithNoIdBinary();
+                if ($trade != NULL) {
+                    $parameterRepo = $this->getContainer()->get('parameter_repo');
+                    $parameter = $parameterRepo->findOneById(1);
+                    $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
+                    if ($parameter->getSecuritySequence() == 1){
+                        echo "*******DELETE TRADE CORROMPU *******************\n";
+                        $em = $this->getContainer()->get('doctrine.orm.entity_manager');
+                        $em->remove($trade);
+                        $em->flush();
+                        $parameter->setSecuritySequence(0);
+                        $parameterPersister->persist($parameter);  
+                    } else {
+                        $parameter->setSecuritySequence(1);
+                        $parameterPersister->persist($parameter); 
+                    }
                 }
             });
             
