@@ -495,7 +495,7 @@ class Sequence
         $trades = $tradeRepo->getTradeForSequence($this);
         foreach ($trades as $trade) {
             // retourne la première mise 
-            if ($trade->getState() == Trade::STATELOOSE && $trade->getSequenceState() != Trade::SEQSTATEDONE) {
+            if ($trade->getState() == Trade::STATELOOSE) {
                 $sum += $trade->getAmount();
             }
         }

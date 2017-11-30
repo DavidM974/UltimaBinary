@@ -52,11 +52,11 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
                 $parameterRepo = $this->getContainer()->get('parameter_repo');
                 $parameter = $parameterRepo->findOneById(1);
-                
+                $parameter->setSecuritySequence(0);
                 $parameterPersister->persist($parameter);
                 // api save new trade
                     $trade = $this->api->saveNewTrade($json);
-                    $this->ubAlgo->updateBalance($trade);
+                    //$this->ubAlgo->updateBalance($trade);
                 }
                 if (isset($json['profit_table'])) {
                 // api getLastResult
@@ -120,7 +120,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
             $entityManager->detach($parameter);*/
             });
             
-            $loop->addPeriodicTimer(63, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(24, function(Timer $timer) use ( $conn) {
                 // Mise à jours du taux des differentes devises
                 /*
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
