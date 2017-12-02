@@ -52,7 +52,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
                 $parameterRepo = $this->getContainer()->get('parameter_repo');
                 $parameter = $parameterRepo->findOneById(1);
-                
+                $parameter->setSecuritySequence(0);
                 $parameterPersister->persist($parameter);
                 // api save new trade
                     $trade = $this->api->saveNewTrade($json);

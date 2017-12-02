@@ -511,14 +511,14 @@ class UBAlgo {
         }
         
 
-        if ($sequence->getLength() == 12) {
+        if ($sequence->getLength() == 18) {
             $sequence->setState(Sequence::CLOSE);
             $this->sequencePersister->persist($sequence);
             $this->addSumLoose($sequence);
         }
 
-
-
+// si mise+um-to-rec > 28
+        
 
         /*
           if($trade->getSequence()->getLength() >= 6){ // change de mode une fois que j'ai attein le palier de 6
