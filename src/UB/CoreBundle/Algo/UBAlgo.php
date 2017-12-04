@@ -334,7 +334,7 @@ class UBAlgo {
         if (empty($listSequence)) {
             echo " ------ Pas de sequence Ouverte dispo \n";
             
-            $sequence = $this->sequencePersister->newSequence(1, 1, ($this->parameter->getBalance()+$trade->getAmount()));
+            $sequence = $this->sequencePersister->newSequence(1, 0, ($this->parameter->getBalance()+$trade->getAmount()));
             $this->initTrinity($sequence);
             $this->sequencePersister->persist($sequence);
             return $sequence;
@@ -349,7 +349,7 @@ class UBAlgo {
             /*if ($this->getNbSequenceOpen() > 0){
                 //
             }else*/
-            return $this->sequencePersister->newSequence(1, 1,  $this->parameter->getBalance()+$trade->getAmount());
+            return $this->sequencePersister->newSequence(1, 0,  $this->parameter->getBalance()+$trade->getAmount());
         }
     }
 
@@ -471,11 +471,19 @@ class UBAlgo {
 
     public function setResultTrade(Trade $trade) {
         $this->parameter = $this->getLastParameter();
+        $sequence = $trade->getSequence();
         if ($trade->getState() == Trade::STATEWIN && $trade->getSequenceState() != Trade::SEQSTATEDONE) {
             echo "Wintrade ! \n";
             $this->winTrade($trade);
             echo "Update balance ! \n";
-/*
+            $sequence->setSumWinTR($sequence->getSumWinTR() + $trade->getAmountRes());
+            
+            if (($this->calcReverseMise($sequence, 0.84, 1) + ($sequence->getSumLooseTR() - $sequence->getSumWinTR()) ) > 26) {
+                $sequence->setState(Sequence::CLOSE);
+                $this->sequencePersister->persist($sequence);
+                $this->addSumLoose($sequence);
+            }
+            /*
             if ($trade->getSequence()->getLength() == 1 && $trade->getAmount() == UBAlgo::DEFAULT_MISE) {
                 echo "TALENT 1\n";
                 $this->parameter->setTalent($trade->getAmountRes());
@@ -496,6 +504,13 @@ class UBAlgo {
             } else {
                 $this->looseTrade($trade);
             }
+            $sequence->setSumLooseTR($sequence->getSumLooseTR() + $trade->getAmount());
+            if ($sequence->getPosition() == 1 || ($trade->getAmount() > 2 && $sequence->getLength() == 1)){
+                $sequence->setPosition(0);// je met un flag a 0 pour dire que j'ai remis la perte
+                $this->sequencePersister->persist($sequence);
+                $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() + 1.88 ); 
+                $this->parameterPersister->persist($this->parameter);
+            }
             /*
               if($this->parameter->getBalance() < 40) {
               echo "SECURITE COMPTE";
@@ -504,21 +519,20 @@ class UBAlgo {
              * 
              */
         }
-        $sequence = $trade->getSequence();
+        $this->sequencePersister->persist($sequence);
+        
 
         if ($sequence->getLength() >= 7) {
             $this->checkStatSequenceTen($sequence);
         }
         
 
-        if ($sequence->getLength() == 18) {
+        if ($sequence->getLength() == 12) {
             $sequence->setState(Sequence::CLOSE);
             $this->sequencePersister->persist($sequence);
             $this->addSumLoose($sequence);
         }
 
-// si mise+um-to-rec > 28
-        
 
         /*
           if($trade->getSequence()->getLength() >= 6){ // change de mode une fois que j'ai attein le palier de 6
@@ -609,8 +623,13 @@ class UBAlgo {
         $i = 0;
         $amount = 0;
         $tradeToFusion = array();
+        if ($this->checkFusion4($sequence)){
+            $break = 4;
+        } else {
+            $break = $this->parameter->getMartingaleSize();
+        }
         foreach ($trades as $trade) {
-            if ($i == $this->parameter->getMartingaleSize()) { break; }
+            if ($i == $break) { break; }
             if ($trade->getSequenceState() != Trade::SEQSTATEDONE && $trade->getState() != Trade::STATEWIN) {
                 $tradeToFusion[] = $trade;
                 $amount += $trade->getAmount();
@@ -620,12 +639,20 @@ class UBAlgo {
         }
         if ($amount > 0 && $i > 1) {
             $KeepTrade = $tradeToFusion[0];
-            $KeepTrade->setAmount(round(($amount / (0.84)) + 0.01, 2));// TODO TAUX
+            $KeepTrade->setAmount(round(($amount / (0.89)) + 0.01, 2));// TODO TAUX
             $this->tradePersister->persist($KeepTrade);
             for ($y = 1; $y < $i; $y++) {
                 $tradeToFusion[$y]->setSequenceState(Trade::SEQSTATEDONE);
                 $this->tradePersister->persist($tradeToFusion[$y]);
             }
+        }
+    }
+    
+    public function checkFusion4(Sequence $sequence) {
+        if ($sequence->getLength() >= 5 && $sequence->getSumLooseTR() < 4) {
+            return true;
+        } else {
+            return false;
         }
     }
 
@@ -766,7 +793,7 @@ class UBAlgo {
     
     public function checkEndTrinitySecure(Sequence $sequence) {
         $length = $sequence->getMultiLoose() + $sequence->getMultiWin();
-        
+        echo "######### Check end Trinity Secure #######\n";
         if ($length == 10) {
             if ($sequence->getSumWinTR() > $sequence->getSumLooseTR() && $this->parameter->getSumLooseTalent() > 0 ){
                 $sumWin = $sequence->getSumWinTR() - $sequence->getSumLooseTR();
@@ -925,6 +952,7 @@ class UBAlgo {
     
     public function looseTalent(Trade $trade, Sequence $sequence){
         if ($sequence->getLength() == 1 && $trade->getAmount() > UBAlgo::DEFAULT_MISE){
+            echo "######## LOOSE TALENT SET SUMLOOSETALENT #######";
             $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() + 0.46 ); //TODO mise defaut x taux devise
             $this->parameterPersister->persist($this->parameter);
             $this->sequencePersister->persist($sequence);
@@ -1014,7 +1042,8 @@ class UBAlgo {
         $mise = 0;
         if ($this->parameter->getSumLooseTalent() > 0) {
             $mise += UBAlgo::MISE_RECUP;
-            $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() - UBAlgo::MISE_RECUP);
+            echo "######## NEW MISE INIT SET SUMLOOSETALENT #######";
+            $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() - (UBAlgo::MISE_RECUP*0.94));
             $this->parameterPersister->persist($this->parameter);
         }
 
@@ -1052,7 +1081,7 @@ class UBAlgo {
         return round(($amount / ($taux)) + 0.01, 2);
     }
     
-        public function calcReverseMise(Sequence $sequence, $taux) {
+        public function calcReverseMise(Sequence $sequence, $taux, $test = 0) {
         echo "debug calc nextMg id " . $sequence->getId() . "\n";
         $trades = $this->tradeRepo->getTradeForSequence($sequence);
         $amount = 0;
@@ -1088,10 +1117,19 @@ class UBAlgo {
           }
           } */
         $mise = round(($amount / ($taux)) + 0.01, 2);
-        if ($this->parameter->getSumLooseTalent() > 0 && !($sequence->getLength() >= 5 && $this->getStatLooseSequence($sequence) >= 90 )) {
+        if ($this->parameter->getSumLooseTalent() > 0 && $mise < 5 && !($sequence->getLength() >= 5 && $this->getStatLooseSequence($sequence) >= 90 )) {
+            if ($test == 0) {
             $mise += UBAlgo::MISE_RECUP;
-            $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() - UBAlgo::MISE_RECUP);
+            echo "######## CALCREVERSEMISE SET SUMLOOSETALENT #######";
+            $sumLooseTalent = $this->parameter->getSumLooseTalent() - (UBAlgo::MISE_RECUP*0.94);
+            $sequence->setPosition(1);// je met un flag a 1 pour dire que j'ai augmenter la mise
+            $this->sequencePersister->persist($sequence);
+            if ($sumLooseTalent < 0) { 
+                $sumLooseTalent = 0;
+            }
+            $this->parameter->setSumLooseTalent($sumLooseTalent);
             $this->parameterPersister->persist($this->parameter);
+            }
         }
         echo $mise . " ****** REVERSE test taux " . $taux . " \n";
         return $mise;
