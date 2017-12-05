@@ -494,9 +494,13 @@ class UBAlgo {
                 $this->parameterPersister->persist($this->parameter);
             }*/
             $this->parameter->setBalance($this->parameter->getBalance() + $trade->getAmount() + $trade->getAmountRes());
+            if ($this->parameter->getTalent() < $this->parameter->getBalance() ){ // securité si ont depasse le plus haut solde ont cloture
+                $this->parameter->setTalent($this->parameter->getBalance());
+                $this->parameter->setSumLooseTalent(0);
+            }
             $this->parameterPersister->persist($this->parameter);
-            if (!$this->isSequenceFinish($trade->getSequence())) {
-                $trade->getSequence()->isFinished($this->tradeRepo);
+            if (!$trade->getSequence()->isFinished($this->tradeRepo)) {
+                $this->isSequenceFinish($trade->getSequence());
             }
         } else if ($trade->getState() == Trade::STATELOOSE && $trade->getSequenceState() != Trade::SEQSTATEDONE) {
             if ($trade->getSequence()->getMode() == Sequence::SECURE) {
@@ -528,6 +532,7 @@ class UBAlgo {
         
 
         if ($sequence->getLength() == 12) {
+            echo "###### CLOSE 12 ######\n";
             $sequence->setState(Sequence::CLOSE);
             $this->sequencePersister->persist($sequence);
             $this->addSumLoose($sequence);
@@ -566,7 +571,8 @@ class UBAlgo {
 
 
     public function addSumLoose(Sequence $sequence) {
-        $sumLoose = $sequence->getSumLoose($this->tradeRepo) - $sequence->getSumWin($this->tradeRepo);
+        $sumLoose = $sequence->getSumLooseTR() - $sequence->getSumWinTR();
+        echo "##### SUMLOOSE $sumLoose #####\n";
         $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() + $sumLoose ); 
         $this->parameterPersister->persist($this->parameter);
     }
@@ -672,8 +678,9 @@ class UBAlgo {
     
     public function isSequenceFinish(Sequence $sequence)
     {
-        if ($sequence->getBalanceStart() < $this->parameter->getBalance())
+        if ($sequence->getSumWinTR() > $sequence->getSumLooseTR() || $this->parameter->getBalance() >= $this->parameter->getTalent())
         {
+            echo "###CLOSE ISFINISHED###";
             $sequence->setState(Sequence::CLOSE);
             $sequence->setTimeEnd(new \DateTime());
             $sequence->initMultiEveryTenTrade();
@@ -1043,7 +1050,11 @@ class UBAlgo {
         if ($this->parameter->getSumLooseTalent() > 0) {
             $mise += UBAlgo::MISE_RECUP;
             echo "######## NEW MISE INIT SET SUMLOOSETALENT #######";
-            $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() - (UBAlgo::MISE_RECUP*0.94));
+            $sumLT = $this->parameter->getSumLooseTalent() - (UBAlgo::MISE_RECUP*0.94);
+            if ($sumLT < 0) {
+                $sumLT = 0;
+            }
+            $this->parameter->setSumLooseTalent($sumLT);
             $this->parameterPersister->persist($this->parameter);
         }
 
