@@ -9,6 +9,16 @@
 {% block ubplatform_body %}
 
   <h2>Paramétrage actuel de l'application</h2>
+<br/>
 
+Compte de départ : 1000 <br/>
+talent : {{talent}} <br/>
+
+
+  {% for cle, data in tabRes %}
+    Consecutif : {{cle}} nombre {{data}} <br/>
+  {% endfor %}
+  Plus bas atteind : {{plusBas}}<br/>
+  compte final : {{account}}
 
   {% endblock %}

@@ -54,9 +54,10 @@ class UBAlgo {
     private $sequencesToExclude;
     private $winOrange;
 
-    const DEFAULT_MISE = 0.40;
+    const DEFAULT_MISE = 0.48;
     const MISE_RECUP = 2;
     const NB_SEQ = 1;
+    const PALIER_CRITIQUE = 45;
 
     const MODE_VERT = 0.025;
     const MODE_ORANGE = 0.05;
@@ -498,6 +499,9 @@ class UBAlgo {
                 $this->parameter->setTalent($this->parameter->getBalance());
                 $this->parameter->setSumLooseTalent(0);
             }
+            if ($this->parameter->getSumLooseTalent() <= 0) {
+                $this->parameter->setIsActiveM5(0);
+            }
             $this->parameterPersister->persist($this->parameter);
             if (!$trade->getSequence()->isFinished($this->tradeRepo)) {
                 $this->isSequenceFinish($trade->getSequence());
@@ -512,7 +516,7 @@ class UBAlgo {
             if ($sequence->getPosition() == 1 || ($trade->getAmount() > 2 && $sequence->getLength() == 1)){
                 $sequence->setPosition(0);// je met un flag a 0 pour dire que j'ai remis la perte
                 $this->sequencePersister->persist($sequence);
-                $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() + 1.88 ); 
+                $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() + (UBAlgo::MISE_RECUP * 0.94) ); 
                 $this->parameterPersister->persist($this->parameter);
             }
             /*
@@ -537,6 +541,7 @@ class UBAlgo {
             $this->sequencePersister->persist($sequence);
             $this->addSumLoose($sequence);
         }
+        $this->checkPalier();
 
 
         /*
@@ -546,7 +551,19 @@ class UBAlgo {
           $this->sequencePersister->persist($sequence);
           } */
     }
-
+    
+    public function checkPalier() {
+                    // met en place une securite pour les bad sequence
+         $sumLost = $this->parameter->getTalent() - $this->parameter->getBalance();
+            if ($sumLost > UBAlgo::PALIER_CRITIQUE) {
+                $subPalier = $sumLost - UBAlgo::PALIER_CRITIQUE;
+                $this->parameter->setSumRecupSecour($this->parameter->getSumRecupSecour() + $subPalier);
+               // $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() - $subPalier); 
+                $this->parameter->setTalent($this->parameter->getTalent() - $subPalier);
+                $this->parameter->setIsActiveM5(1);// TODO renomer le flag
+                $this->parameterPersister->persist($this->parameter);
+            }
+    }
     public function checkStatSequenceTen(Sequence $sequence) {
         if ($this->getStatLooseSequence($sequence) >= 80) {
             $sequence->setState(Sequence::CLOSE);
@@ -1049,7 +1066,7 @@ class UBAlgo {
         $mise = 0;
         if ($this->parameter->getSumLooseTalent() > 0) {
             $mise += UBAlgo::MISE_RECUP;
-            echo "######## NEW MISE INIT SET SUMLOOSETALENT #######";
+            echo "######## NEW MISE INIT SET SUMLOOSETALENT #######\n";
             $sumLT = $this->parameter->getSumLooseTalent() - (UBAlgo::MISE_RECUP*0.94);
             if ($sumLT < 0) {
                 $sumLT = 0;
@@ -1062,7 +1079,37 @@ class UBAlgo {
              return UBAlgo::DEFAULT_MISE + $mise;
   
     }
-
+    
+    public function checkSecuritySequenceToRecup() {
+        if ($this->parameter->getSumLooseTalent() > 0 && $this->parameter->getSumLooseTalent() < 7 && $this->parameter->getIsActiveM5() == 0 && $this->parameter->getSumRecupSecour() > 0) {// TODO renomer isactiveM5 en flag Security
+          echo "\n######## NEW MISE INIT CHECKSECURITY OK #######\n";
+            $this->setSumRecupData();
+        }
+    }
+    
+        public function checkSecuritySequence(Sequence $sequence, $test = 0) {
+        if ($this->parameter->getSumLooseTalent() > 0 && $this->parameter->getSumLooseTalent() < 7 
+                && $this->parameter->getIsActiveM5() == 0 && $this->parameter->getSumRecupSecour() > 0 && $test == 0
+                && $sequence->getSumLooseTR() < 5) {// TODO renomer isactiveM5 en flag Security
+            $this->setSumRecupData();
+        }
+    }
+    
+    public function setSumRecupData(){
+        if ($this->parameter->getSumRecupSecour() > 2){
+                $sum = UBAlgo::MISE_RECUP;
+            } else {
+                $sum = $this->parameter->getSumRecupSecour();
+            }
+            $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() + $sum);
+            $this->parameter->setSumRecupSecour($this->parameter->getSumRecupSecour() - $sum);
+            $this->parameter->setTalent($this->parameter->getTalent() + $sum);
+            if ($this->parameter->getSumLooseTalent() > 5 && $this->parameter->getSumRecupSecour() > 0) {
+                $this->parameter->setIsActiveM5(1);
+            }
+            $this->parameterPersister->persist($this->parameter);
+            return $sum;
+    }
     public function calcMise($taux, $amount) {
         if ($taux == NULL) {
             $taux = $this->parameter->getDefaultRate();

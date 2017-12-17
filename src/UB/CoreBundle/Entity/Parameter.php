@@ -133,6 +133,13 @@ class Parameter
      * @ORM\Column(name="balance", type="float")
      */
     private $balance;
+    
+     /**
+     * @var float
+     *
+     * @ORM\Column(name="sumRecupSecour", type="float", nullable=true)
+     */
+    private $sumRecupSecour;
 
     /**
      * @ORM\OneToOne(targetEntity="UB\CoreBundle\Entity\Currency", cascade={"persist"})
@@ -531,6 +538,30 @@ class Parameter
     public function getBalance()
     {
         return $this->balance;
+    }
+    
+    /**
+     * Set sumRecupSecour
+     *
+     * @param float $sumRecupSecour
+     *
+     * @return Parameter
+     */
+    public function setSumRecupSecour($sumRecupSecour)
+    {
+        $this->sumRecupSecour = $sumRecupSecour;
+
+        return $this;
+    }
+
+    /**
+     * Get sumRecupSecour
+     *
+     * @return float
+     */
+    public function getSumRecupSecour()
+    {
+        return $this->sumRecupSecour;
     }
 
      /**

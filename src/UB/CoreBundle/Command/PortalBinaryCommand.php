@@ -120,7 +120,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
             $entityManager->detach($parameter);*/
             });
             
-            $loop->addPeriodicTimer(63, function(Timer $timer) use ( $conn) {
+            $loop->addPeriodicTimer(13, function(Timer $timer) use ( $conn) {
                 // Mise à jours du taux des differentes devises
                 /*
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
@@ -162,7 +162,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                    
                     $symbole = $symboleRepo->findOneById(3); // 9 EURUSD /  3 VOL-25
                     if($tradeRepo->isTrading() == NULL){
-                        $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade());
+                        $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade(), $parameter);
                     }
                // }
             });

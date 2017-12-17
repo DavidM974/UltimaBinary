@@ -98,6 +98,7 @@ services:
         arguments:
             - "@doctrine.orm.entity_manager"
             - "@signal_repo"
+            - "@trade_repo"
             
     ub_core.transaction_persister:
         class: UB\CoreBundle\Persister\TransactionPersister

@@ -42,6 +42,18 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
                 ->getOneOrNullResult();
     }
     
+        function getLastTwoTrade(Sequence $sequence = NULL) {
+        $qb = $this->createQueryBuilder('t');
+        if ($sequence != NULL) {
+            $qb->Where('t.sequence = :seq')
+            ->setParameter('seq', $sequence);
+        }
+        return $qb->orderBy('t.signalTime', 'DESC')
+                ->setMaxResults(2)
+                ->getQuery()
+                ->getResult();
+    }
+    
 function getLastWinTrade(Sequence $sequence = NULL) {
         $qb = $this->createQueryBuilder('t');
         if ($sequence != NULL) {
@@ -155,6 +167,17 @@ function getLastWinTrade(Sequence $sequence = NULL) {
             ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATETRADE)
             ->distinct('tr.sequence'); 
         return $subquery;
+    }
+    
+    public function getLastDaysTrade($day) {
+                $qb = $this->createQueryBuilder('tr');
+
+        $result = $qb->select('tr')
+                ->Where("tr.signalTime >= '2017-12-04 00:00:00'")
+                ->addOrderBy('tr.signalTime', 'ASC')
+                ->getQuery()
+                ->getResult();
+        return $result;
     }
     
            public function isAlreadyTradeInSameMinute(\UB\CoreBundle\Entity\TradeSignal $signal) {          
