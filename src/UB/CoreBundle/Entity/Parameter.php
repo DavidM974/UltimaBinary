@@ -105,13 +105,20 @@ class Parameter
      * @ORM\Column(name="securitySequence", type="integer", nullable=true)
      */
     private $securitySequence;
+    
+     /**
+     * @var int
+     *
+     * @ORM\Column(name="securityTrade", type="integer", nullable=true)
+     */
+    private $securityTrade;
 
     /**
      * @var int
      *
-     * @ORM\Column(name="maxParallelSequence", type="integer", nullable=true)
+     * @ORM\Column(name="lastLengthSequence", type="integer", nullable=true)
      */
-    private $maxParallelSequence;
+    private $lastLengthSequence;
 
     /**
      * @var int
@@ -445,27 +452,51 @@ class Parameter
     }
 
     /**
-     * Set maxParallelSequence
+     * Set securityTrade
      *
-     * @param integer $maxParallelSequence
+     * @param integer $securityTrade
      *
      * @return Parameter
      */
-    public function setMaxParallelSequence($maxParallelSequence)
+    public function setSecurityTrade($securityTrade)
     {
-        $this->maxParallelSequence = $maxParallelSequence;
+        $this->securityTrade = $securityTrade;
 
         return $this;
     }
 
     /**
-     * Get maxParallelSequence
+     * Get securityTrade
      *
      * @return int
      */
-    public function getMaxParallelSequence()
+    public function getSecurityTrade()
     {
-        return $this->maxParallelSequence;
+        return $this->securityTrade;
+    }
+    
+    /**
+     * Set lastLengthSequence
+     *
+     * @param integer $lastLengthSequence
+     *
+     * @return Parameter
+     */
+    public function setLastLengthSequence($lastLengthSequence)
+    {
+        $this->lastLengthSequence = $lastLengthSequence;
+
+        return $this;
+    }
+
+    /**
+     * Get lastLengthSequence
+     *
+     * @return int
+     */
+    public function getLastLengthSequence()
+    {
+        return $this->lastLengthSequence;
     }
 
     /**

@@ -53,7 +53,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
                 $parameterRepo = $this->getContainer()->get('parameter_repo');
                 $parameter = $parameterRepo->findOneById(1);
-                $parameter->setSecuritySequence(0);
+                $parameter->setSecurityTrade(0);
                 $parameterPersister->persist($parameter);
                 // api save new trade
                     $trade = $this->api->saveNewTrade($json);
@@ -136,15 +136,15 @@ class PortalBinaryCommand extends ContainerAwareCommand
                     $parameterRepo = $this->getContainer()->get('parameter_repo');
                     $parameter = $parameterRepo->findOneById(1);
                     $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
-                    if ($parameter->getSecuritySequence() == 1){
+                    if ($parameter->getSecurityTrade() == 1){
                         echo "*******DELETE TRADE CORROMPU *******************\n";
                         $em = $this->getContainer()->get('doctrine.orm.entity_manager');
                         $em->remove($trade);
                         $em->flush();
-                        $parameter->setSecuritySequence(0);
+                        $parameter->setSecurityTrade(0);
                         $parameterPersister->persist($parameter);  
                     } else {
-                        $parameter->setSecuritySequence(1);
+                        $parameter->setSecurityTrade(1);
                         $parameterPersister->persist($parameter); 
                     }
                 }

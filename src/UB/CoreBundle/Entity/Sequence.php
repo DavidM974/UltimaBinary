@@ -136,6 +136,13 @@ class Sequence
      */
     private $balanceStart;
     
+     /**
+     * @var float
+     *
+     * @ORM\Column(name="lastOFA", type="float", nullable=true)
+     */
+    private $lastOFA;
+    
     public function __construct()
     {
       $this->trades = new ArrayCollection();
@@ -176,6 +183,30 @@ class Sequence
         return $this->balanceStart;
     }
 
+     /**
+     * Set lastOFA
+     *
+     * @param float $lastOFA
+     *
+     * @return Parameter
+     */
+    public function setLastOFA($lastOFA)
+    {
+        $this->lastOFA = $lastOFA;
+
+        return $this;
+    }
+
+    /**
+     * Get lastOFA
+     *
+     * @return float
+     */
+    public function getLastOFA()
+    {
+        return $this->lastOFA;
+    }
+    
     /**
      * Set length
      *
@@ -464,7 +495,7 @@ class Sequence
     }
     
     
-    public function isFinished(TradeRepository $tradeRepo) {
+    public function isFinished(TradeRepository $tradeRepo, $accountBalance, $sequenceStartAmount) {
         echo "------ is Finished ----- \n";
         $trades = $tradeRepo->findBySequence($this);
         foreach ($trades as $trade) {
@@ -472,6 +503,9 @@ class Sequence
               echo "------ NON TERMINEE ----- \n";  
                 return false;
             }
+        }
+        if($accountBalance < $sequenceStartAmount ){
+            return false;
         }
         $this->setTimeEnd(new \DateTime());
         $this->setState(Sequence::CLOSE);
