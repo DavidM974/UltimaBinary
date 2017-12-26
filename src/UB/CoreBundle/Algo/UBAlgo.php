@@ -505,11 +505,8 @@ class UBAlgo {
             if($sequence->getMultiLoose() > 1 || ($sequence->getMultiwin() == 3) || $this->checkSecurityOut($sequence)  ){
                 $this->parameter->setSecuritySequence(2); // ONE FOR ALL
             } 
-            elseif ($sequence->getMultiLoose() == 1 && $sequence->getSumLooseTR() == UBAlgo::DEFAULT_MISE ){
-                $this->parameter->setSecuritySequence(1);
-            }  
-            elseif ($sequence->getMultiLoose() == 1 && $sequence->getSumLooseTR() > UBAlgo::DEFAULT_MISE ){
-                $this->parameter->setSecuritySequence(3);
+            elseif ($sequence->getMultiLoose() == 1 && $sequence->getLength () == 2){
+                $this->parameter->setSecuritySequence(4);
             }elseif (($sequence->getSumLooseTR() - $sequence->getSumWinTR() < 10) && ($sequence->getMultiLoose() == 1)) {
                      $this->parameter->setSecuritySequence(4);//OFA BLOQUE
             } else {
@@ -542,8 +539,11 @@ class UBAlgo {
             $sequence->setMultiWin(0);
             $this->looseTrade($trade);
             $this->parameter->setSecuritySequence(0);//DEFAULT
-             if ($sequence->getMultiLoose() == 1) {
-                $this->parameter->setSecuritySequence(1);
+             if ($sequence->getMultiLoose() >= 1) {
+                $this->parameter->setSecuritySequence(0);
+             }
+              if ($sequence->getMultiLoose() == 2 && $sequence->getSumLooseTR() > (UBAlgo::DEFAULT_MISE + (UBAlgo::DEFAULT_MISE / 0.84)) && $sequence->getLength() == 2) {
+                $this->parameter->setSecuritySequence(5);
              }
             $this->parameterPersister->persist($this->parameter);
             if ($this->parameter->getTalent() == 1){
@@ -575,7 +575,7 @@ class UBAlgo {
     }
 
     public function checkLooseBigFirstTrade(Trade $trade, Sequence $sequence) {
-        if ($sequence->getMultiLoose() == 1 && $sequence->getSumLooseTR() > UBAlgo::DEFAULT_MISE) {
+        if ($sequence->getMultiLoose() == 1 && $sequence->getLength() == 1) {
             $this->parameter->setSecuritySequence(1);
             $trade->setAmount(UBAlgo::DEFAULT_MISE);
             $this->tradePersister->persist($trade);
@@ -1182,18 +1182,18 @@ class UBAlgo {
                 $this->parameterPersister->persist($this->parameter);
                 $sequence->setLastOFA($mise);
                 break;
-            case 3 : // loose win avec mise a 1.38
-                $mise = UBAlgo::DEFAULT_MISE + (UBAlgo::DEFAULT_MISE / 0.84);
-                $this->parameter->setTalent(1);
-                break;
             case 4:
                 echo "\n 50 --- ONE FOR ALL BLOQUE !!!!\n";
                 if ($sequence->getLastOFA() > 0) {
                     $mise = $sequence->getLastOFA();
                 } else {
                     $mise = $sequence->getSumLooseTR() - $sequence->getSumWinTR();
-                    $sequence->setLastOFA($amount);
+                    $sequence->setLastOFA($mise);
                 }
+                break;
+            case 5 : // loose loose avec mise a 1.38
+                $mise = UBAlgo::DEFAULT_MISE + (UBAlgo::DEFAULT_MISE / 0.84);
+                $this->parameter->setTalent(1);
                 break;
             default :
                 $mise = 0.35;
