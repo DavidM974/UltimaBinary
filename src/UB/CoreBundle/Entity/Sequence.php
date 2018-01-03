@@ -496,11 +496,11 @@ class Sequence
     
     
     public function isFinished(TradeRepository $tradeRepo, $accountBalance, $sequenceStartAmount) {
-        echo "------ is Finished ----- \n";
+        //echo "------ is Finished ----- \n";
         $trades = $tradeRepo->findBySequence($this);
         foreach ($trades as $trade) {
             if ($trade->getSequenceState() != Trade::SEQSTATEDONE) {
-              echo "------ NON TERMINEE ----- \n";  
+            // echo "------ NON TERMINEE ----- \n";  
                 return false;
             }
         }

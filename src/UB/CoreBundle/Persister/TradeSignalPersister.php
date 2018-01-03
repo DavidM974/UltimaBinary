@@ -100,7 +100,7 @@ class TradeSignalPersister {
         }
 
 
-
+        
         /*
           if (mt_rand(0, 99) < 50) {
           $signal->setContractType('CALL');

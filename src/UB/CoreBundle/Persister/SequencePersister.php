@@ -32,6 +32,7 @@ class SequencePersister
         $sequence->setPosition(0);
         $sequence->setMultiWin(0);
         $sequence->setMultiLoose(0);
+        $sequence->setLastOFA(0);
         $sequence->setLengthTrinity($LengthTrinity);
         $sequence->setSumLooseTR($newSumLoose);
         $sequence->setTimeStart(new \DateTime());
