@@ -57,7 +57,8 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $parameterPersister->persist($parameter);
                 // api save new trade
                     $trade = $this->api->saveNewTrade($json);
-                    $this->ubAlgo->updateBalance($trade);
+                    if ($trade != NULL)
+                        $this->ubAlgo->updateBalance($trade);
                 }
                 if (isset($json['profit_table'])) {
                 // api getLastResult
@@ -162,9 +163,9 @@ class PortalBinaryCommand extends ContainerAwareCommand
                     
                    
                     $symbole = $symboleRepo->findOneById(3); // 9 EURUSD /  3 VOL-25
-                    if($tradeRepo->isTrading() == NULL){
+                   /* if($tradeRepo->isTrading() == NULL){
                         $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade(), $parameter);
-                    }
+                    }*/
                // }
             });
              
