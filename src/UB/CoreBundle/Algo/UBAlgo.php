@@ -54,11 +54,11 @@ class UBAlgo {
     private $sequencesToExclude;
     private $winOrange;
 
-    const DEFAULT_MISE = 0.50;
+    const DEFAULT_MISE = 0.40;
     const DEFAULT_OFA_TAUX = 0.85;
     const MISE_RECUP = 0.5;
     const MISE_MULTIWIN = 1.15;
-    const NB_SEQ = 1;
+    const NB_SEQ = 2;
     const PALIER_CRITIQUE = 45;
 
     const MODE_VERT = 0.025;
@@ -570,6 +570,7 @@ class UBAlgo {
                 $this->parameter->setTalent(0);
             }*/
             if ($trade->getAmount() == 0.35){
+                
                 $sequence->setSumLooseTR($sequence->getSumLooseTR() + 0.04);
             }else {
                 $sequence->setSumLooseTR($sequence->getSumLooseTR() + $trade->getAmount());
@@ -1183,7 +1184,7 @@ class UBAlgo {
         echo "debug calc nextMg id " . $sequence->getId() . "\n";
         $trades = $this->tradeRepo->getTradeForSequence($sequence);
         $mise = $this->modeCalcMise($sequence, $trades);
-        $mise = ($mise > 0.35)? round(($mise / ($taux)) + 0.01, 2) : 0.5;
+        $mise = ($mise > 0.35)? round(($mise / ($taux)) + 0.01, 2) : 0.35;
         echo $mise . " ****** REVERSE test taux " . $taux . " \n";
         return $mise;
     }
@@ -1226,7 +1227,7 @@ class UBAlgo {
                 $this->parameter->setTalent(1);
                 break;
             default :
-                $mise = 0.5;
+                $mise = 0.35;
                 break;
         }
         $this->sequencePersister->persist($sequence);
