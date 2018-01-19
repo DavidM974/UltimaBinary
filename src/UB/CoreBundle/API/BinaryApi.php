@@ -50,21 +50,6 @@ class BinaryApi implements ApiInterface {
                             "duration_unit": "' . $unit . '",
                             "symbol": "' . $trade->getSymbole()->getName() . '"
                       }}');
-        if($trade->getAmount() == 0.35){
-            $conn->send('
-                    {
-                      "buy": "1",
-                      "price": ' . 0.35 . ',
-                      "parameters": {
-                            "amount": "' . 0.35 . '",
-                            "basis": "stake",
-                            "contract_type": "PUT",
-                            "currency": "' . $trade->getCurrency()->getName() . '",
-                            "duration": "' . $trade->getDuration() . '",
-                            "duration_unit": "' . $unit . '",
-                            "symbol": "' . $trade->getSymbole()->getName() . '"
-                      }}');
-        }
         $parameter = $this->parameterRepo->findOneBy(array('id' => Parameter::DEFAULT_ID));
         $parameter->setIsActiveM1(true);
     }
@@ -84,21 +69,6 @@ class BinaryApi implements ApiInterface {
                             "duration_unit": "' . $unit . '",
                             "symbol": "' . $trade->getSymbole()->getName() . '"
                       }}');
-        if($trade->getAmount() == 0.35){
-            $conn->send('
-                    {
-                      "buy": "1",
-                      "price": ' . 0.35 . ',
-                      "parameters": {
-                            "amount": "' . 0.35 . '",
-                            "basis": "stake",
-                            "contract_type": "CALL",
-                            "currency": "' . $trade->getCurrency()->getName() . '",
-                            "duration": "' . $trade->getDuration() . '",
-                            "duration_unit": "' . $unit . '",
-                            "symbol": "' . $trade->getSymbole()->getName() . '"
-                      }}');
-        }
         $parameter = $this->parameterRepo->findOneBy(array('id' => \UB\CoreBundle\Entity\Parameter::DEFAULT_ID));
         $parameter->setIsActiveM1(true);
     }

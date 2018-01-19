@@ -241,8 +241,12 @@ class UBAlgo {
 
     public function execNewSignal($conn, $api, $signal) {
         $rate = $this->getRateSignal($signal);
-        $amount = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId());
-     //   echo $amount . " mise a ratrapper \n";
+        $amountPut = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId(), 'PUT');
+        $amountCall = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId(), 'CALL');
+        // TODO calculer normalement les mises pour les OFA ne pas oublier de prendre le last OFA de l'autre sequence 
+        // Si lastofa = 0 ajouter 1.5 a la mise
+        // puis appliquer les strategie sur les WIN pour repartir les gains pour diminuer les sumlooseTR
+
         if ($amount > 0) {
 
             $trade = $this->createNewTradeForApi($signal, $amount, Trade::SEQSTATEUNDONE);
@@ -334,6 +338,7 @@ class UBAlgo {
         //Retourne toutes les sequences ouvertes
         $this->parameter = $this->getLastParameter();
         $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading();
+        //TODO ajouter parametre PUT ou CALL
         if (empty($listSequence)) {
          //   echo " ------ Pas de sequence Ouverte dispo \n";
             
@@ -1113,10 +1118,10 @@ class UBAlgo {
 
         $this->parameter = $this->getLastParameter();
         $mise = 0;
-        /*
+        
         if ($this->parameter->getLastLengthSequence() == 1) {
             $mise += UBAlgo::MISE_MULTIWIN;
-        }*/
+        }
 
         return UBAlgo::DEFAULT_MISE + $mise;
     }
