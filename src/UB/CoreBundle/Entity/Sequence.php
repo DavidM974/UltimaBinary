@@ -53,6 +53,12 @@ class Sequence
      */
     private $mode;
     /**
+     * @var string
+     *
+     * @ORM\Column(name="sens", type="string" , columnDefinition="ENUM('PUT', 'CALL')")
+     */
+    private $sens;
+    /**
      * @var \DateTime
      *
      * @ORM\Column(name="time_start", type="datetime")
@@ -277,6 +283,31 @@ class Sequence
     public function getMode()
     {
         return $this->mode;
+    }
+    
+    
+    /**
+     * Set sens
+     *
+     * @param string $sens
+     *
+     * @return Sequence
+     */
+    public function setSens($sens)
+    {
+        $this->sens = $sens;
+
+        return $this;
+    }
+
+    /**
+     * Get sens
+     *
+     * @return string
+     */
+    public function getSens()
+    {
+        return $this->sens;
     }
     
     /**

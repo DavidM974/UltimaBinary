@@ -24,7 +24,7 @@ class SequencePersister
         $this->sequenceRepo = $sequenceRepo;
     }
     
-    public function newSequence($LengthTrinity, $newSumLoose, $balanceStart) {
+    public function newSequence($LengthTrinity, $newSumLoose, $balanceStart, $sens) {
         $sequence = new Sequence();
         $sequence->setLength(0);
         $sequence->setState(Sequence::OPEN);
@@ -37,6 +37,7 @@ class SequencePersister
         $sequence->setSumLooseTR($newSumLoose);
         $sequence->setTimeStart(new \DateTime());
         $sequence->setBalanceStart($balanceStart);
+        $sequence->setSens($sens);
         $this->persist($sequence);
         return $sequence;
     }

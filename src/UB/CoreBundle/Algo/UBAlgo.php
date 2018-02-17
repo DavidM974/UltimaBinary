@@ -185,7 +185,11 @@ class UBAlgo {
 
     public function getModeSequence() {
         // récupre le mode de la sequence en cours
-        $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading();
+        $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading('PUT');
+        foreach ($listSequence as $sequence) {
+            return $sequence->getMode();
+        }
+        $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading('CALL');
         foreach ($listSequence as $sequence) {
             return $sequence->getMode();
         }
@@ -215,18 +219,17 @@ class UBAlgo {
         // get the last signal in db
         $listSignals = $this->signalRepo->getLastSignals();
         $this->parameter = $this->getLastParameter();
+        
         //check if new result
         if (!empty($listSignals)) {
          //   echo "non empty list signal \n";
             //New signal
+
             foreach ($listSignals as $signal) {
                 if (($this->getModeSequence() == Sequence::REVERSE && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ) || $this->getNbSequenceOpen() == 0) {
+                                        echo "TEST\n";
                     $this->execNewSignal($conn, $api, $signal);
-                } else if (($this->getModeSequence() == Sequence::EVO && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ)) {
-                    $this->execNewSignal($conn, $api, $signal);
-                } else if (($this->getModeSequence() == Sequence::SECURE && $this->isTradingFinish() && $this->getNbSequenceOpen() <= UBAlgo::NB_SEQ)) {
-                    $this->execNewSignalSecure($conn, $api, $signal);
-                } else {
+                }  else {
                     if (!$this->isTradingFinish())
                         echo "\n ----- IS TRADING FINISH FALSE \n";
                     if ($this->parameter->getIsActiveM1())
@@ -241,24 +244,36 @@ class UBAlgo {
 
     public function execNewSignal($conn, $api, $signal) {
         $rate = $this->getRateSignal($signal);
-        $amountPut = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId(), 'PUT');
-        $amountCall = $this->getNextMise($this->getBestRate($rate), $signal->getCategorySignal()->getId(), 'CALL');
+        $amountPut = $this->getNextMise($signal->getCategorySignal()->getId(), 'PUT', $this->getBestRate($rate));
+        $amountCall = $this->getNextMise($signal->getCategorySignal()->getId(), 'CALL', $this->getBestRate($rate));
         // TODO calculer normalement les mises pour les OFA ne pas oublier de prendre le last OFA de l'autre sequence 
         // Si lastofa = 0 ajouter 1.5 a la mise
         // puis appliquer les strategie sur les WIN pour repartir les gains pour diminuer les sumlooseTR
 
-        if ($amount > 0) {
+        if ($amountPut > 0) {
 
-            $trade = $this->createNewTradeForApi($signal, $amount, Trade::SEQSTATEUNDONE);
-            $sequence = $this->getSequenceForTrade($trade);
+            $trade1 = $this->createNewTradeForApi($signal, $amountPut, Trade::SEQSTATEUNDONE);
+            $sequence = $this->getSequenceForTrade($trade1, 'PUT');
+            // Link to the sequence and set to 1 the length
+            $trade1->setSequence($sequence);
+            $this->tradePersister->persist($trade1);
+            // new api call with mise to send the trade
+
+        }
+        if ($amountCall > 0) {
+            $signal->setContractType('CALL');
+            $trade= $this->createNewTradeForApi($signal, $amountCall, Trade::SEQSTATEUNDONE);
+            $sequence = $this->getSequenceForTrade($trade, 'CALL');
             // Link to the sequence and set to 1 the length
             $trade->setSequence($sequence);
             $this->tradePersister->persist($trade);
             // new api call with mise to send the trade
             $this->doMise($trade, $conn, $api);
+            $this->doMise($trade1, $conn, $api);
+            echo "MISE ENVOYER ENVOYER API\n";
         }
     }
-    
+
     public function execNewSignalSecure($conn, $api, $signal) {
         $rate = $this->getRateSignal($signal);
         echo "SECURE !!!!!!!!!!!!!!!!!!!!! \n";
@@ -276,7 +291,7 @@ class UBAlgo {
 
     public function doMise(Trade $trade, $conn, $api) {
         $this->parameterPersister->persist($this->parameter);
-        $this->entityManager->detach($this->parameter);
+       // $this->entityManager->detach($this->parameter);
         if ($trade->getContractType() == Trade::TYPECALL) {
             $api->miseHausse($conn, $trade);
         } else {
@@ -334,16 +349,16 @@ class UBAlgo {
         return round($this->parameter->getBalance()/200,2);
     }
 
-    public function getSequenceForTrade(Trade $trade) {
+    public function getSequenceForTrade(Trade $trade, $sens) {
         //Retourne toutes les sequences ouvertes
         $this->parameter = $this->getLastParameter();
-        $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading();
+        $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading($sens);
         //TODO ajouter parametre PUT ou CALL
         if (empty($listSequence)) {
          //   echo " ------ Pas de sequence Ouverte dispo \n";
             
-            $sequence = $this->sequencePersister->newSequence(1, 0, ($this->parameter->getBalance()));
-            $this->initTrinity($sequence);
+            $sequence = $this->sequencePersister->newSequence(1, 0, ($this->parameter->getBalance()), $sens);
+            //$this->initTrinity($sequence);
             $this->sequencePersister->persist($sequence);
             return $sequence;
         } else {
@@ -357,7 +372,7 @@ class UBAlgo {
             /*if ($this->getNbSequenceOpen() > 0){
                 //
             }else*/
-            return $this->sequencePersister->newSequence(1, 0,  $this->parameter->getBalance()+$trade->getAmount());
+            return $this->sequencePersister->newSequence(1, 0,  $this->parameter->getBalance()+$trade->getAmount(), $sens);
         }
     }
 
@@ -420,17 +435,17 @@ class UBAlgo {
     }
     
 
-    public function getNextMise($taux = NULL, $idCategSignal) {
+    public function getNextMise($idCategSignal, $sens, $taux = NULL) {
         //verifie si il y a une sequence ouverte
         $this->parameter = $this->getLastParameter();
-        $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading($idCategSignal, $this->parameter->getMartinGaleSize());
+        $listSequence = $this->sequenceRepo->getOpenSequenceNotTrading($sens, $idCategSignal, $this->parameter->getMartinGaleSize());
 
         if ($taux == NULL) {
             $taux = $this->parameter->getDefaultRate();
         }
         foreach ($listSequence as $sequence) {
-            $sequence->isFinished($this->tradeRepo, $this->parameter->getBalance(), $sequence->getBalanceStart());
-            $this->sequencePersister->persist($sequence);
+            //$sequence->isFinished($this->tradeRepo, $this->parameter->getBalance(), $sequence->getBalanceStart());
+         //   $this->sequencePersister->persist($sequence);
             // $this->sequencesToExclude[] = $sequence;
             return $this->calcMiseForSequence($sequence, $taux);
         }
@@ -460,14 +475,9 @@ class UBAlgo {
         if ($taux == NULL) {
             $taux = $this->parameter->getDefaultRate();
         }
-        if ($sequence->getMode() == Sequence::EVO) {
-        echo"CALC MISE EVO  " . $sequence->getId() . "\n";
-        $mise = $this->calcEvoMise($sequence, $taux);
-        }elseif ($sequence->getMode() == Sequence::REVERSE) {
+        if ($sequence->getMode() == Sequence::REVERSE) {
             $mise = $this->calcReverseMise($sequence, $taux);
-        } elseif ($sequence->getMode() == Sequence::THEOPHILE) {
         }
-        
         
         if ($mise > 0) {
             return $mise;
@@ -1185,7 +1195,7 @@ class UBAlgo {
         return round(($amount / ($taux)) + 0.01, 2);
     }
     
-        public function calcReverseMise(Sequence $sequence, $taux, $test = 0) {
+        public function calcReverseMise(Sequence $sequence, $taux) {
         echo "debug calc nextMg id " . $sequence->getId() . "\n";
         $trades = $this->tradeRepo->getTradeForSequence($sequence);
         $mise = $this->modeCalcMise($sequence, $trades);

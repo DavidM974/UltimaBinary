@@ -138,12 +138,12 @@ class PortalBinaryCommand extends ContainerAwareCommand
                     $parameter = $parameterRepo->findOneById(1);
                     $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
                     if ($parameter->getSecurityTrade() == 1){
-                        echo "*******DELETE TRADE CORROMPU *******************\n";
+                       /* echo "*******DELETE TRADE CORROMPU *******************\n";
                         $em = $this->getContainer()->get('doctrine.orm.entity_manager');
                         $em->remove($trade);
                         $em->flush();
                         $parameter->setSecurityTrade(0);
-                        $parameterPersister->persist($parameter);  
+                        $parameterPersister->persist($parameter);  */
                     } else {
                         $parameter->setSecurityTrade(1);
                         $parameterPersister->persist($parameter); 
@@ -163,9 +163,9 @@ class PortalBinaryCommand extends ContainerAwareCommand
                     
                    
                     $symbole = $symboleRepo->findOneById(3); // 9 EURUSD /  3 VOL-25
-                   /* if($tradeRepo->isTrading() == NULL){
+                    if($tradeRepo->isTrading() == NULL){
                         $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade(), $parameter);
-                    }*/
+                    }
                // }
             });
              

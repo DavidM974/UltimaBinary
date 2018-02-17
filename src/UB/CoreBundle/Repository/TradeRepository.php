@@ -133,7 +133,17 @@ function getLastWinTrade(Sequence $sequence = NULL) {
                 ->getOneOrNullResult();
         return $qb;
     }
-    
+    public function isTradingSens($sens) {
+        $qb = $this->createQueryBuilder('tr')
+                ->Where('tr.state = :state')
+                ->andWhere('tr.contractType = :sens')
+                ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATETRADE)
+                ->setParameter('sens', $sens)
+                ->setMaxResults(1)
+                ->getQuery()
+                ->getOneOrNullResult();
+        return $qb;
+    }    
     public function getTradeWithNoIdBinary() {
         $qb = $this->createQueryBuilder('tr')
                 ->Where('tr.state = :state')

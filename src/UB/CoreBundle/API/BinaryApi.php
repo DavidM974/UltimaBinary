@@ -124,11 +124,11 @@ class BinaryApi implements ApiInterface {
     }
     
     function SaveNewTrade($data) {
-        if ($data['echo_req']['parameters']['contract_type'] == "PUT"){
+        
         $symbole = $this->symboleRepo->findOneBy(array('name' => $data['echo_req']['parameters']['symbol']));
         $currency = $this->currencyRepo->findOneBy(array('name' => $data['echo_req']['parameters']['currency']));
-            
-        $trade = $this->tradeRepo->isTrading();
+            echo "NEW RETOUR API ".$data['echo_req']['parameters']['contract_type']."\n";
+        $trade = $this->tradeRepo->isTradingSens($data['echo_req']['parameters']['contract_type'] );
         if ($trade == NULL) {echo "BUG pas de TRADE et RETUOR API DUN TRADE\n";exit();}
         $trade->setAmount($data['echo_req']['parameters']['amount']);
         $trade->setSymbole($symbole);
@@ -142,8 +142,7 @@ class BinaryApi implements ApiInterface {
         $this->tradePersister->persist($trade);
 
         return $trade;
-        }
-        return NULL;
+        
     }
     // récupère le taux de la base utilisé pour ce trade
     public function calcRate($symbole, $contractType) {
