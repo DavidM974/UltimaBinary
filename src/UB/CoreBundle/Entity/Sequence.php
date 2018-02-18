@@ -84,7 +84,13 @@ class Sequence
      * @ORM\Column(name="length_trinity", type="smallint", nullable=true)
      */
     private $lengthTrinity;   
-
+    
+    /**
+     * @var int
+     *
+     * @ORM\Column(name="mode_mise", type="smallint", nullable=true)
+     */
+    private $modeMise;   
     /**
      * @var int
      *
@@ -526,7 +532,7 @@ class Sequence
     }
     
     
-    public function isFinished(TradeRepository $tradeRepo, $accountBalance, $sequenceStartAmount) {
+    public function isFinished(TradeRepository $tradeRepo, $accountBalance) {
         //echo "------ is Finished ----- \n";
         $trades = $tradeRepo->findBySequence($this);
         foreach ($trades as $trade) {
@@ -535,7 +541,7 @@ class Sequence
                 return false;
             }
         }
-        if($accountBalance < $sequenceStartAmount ){
+        if($accountBalance < $this->getBalanceStart() ){
             return false;
         }
         $this->setTimeEnd(new \DateTime());
@@ -599,7 +605,29 @@ class Sequence
     {
         return $this->lengthTrinity;
     }
- 
+     /**
+     * Set modeMise
+     *
+     * @param integer $modeMise
+     *
+     * @return Sequence
+     */
+    public function setModeMise($modeMise)
+    {
+        $this->modeMise = $modeMise;
+
+        return $this;
+    }
+
+    /**
+     * Get modeMise
+     *
+     * @return int
+     */
+    public function getModeMise()
+    {
+        return $this->modeMise;
+    } 
      /**
      * Set position
      *

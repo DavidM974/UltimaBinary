@@ -20,6 +20,28 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
         return $sequence;
 
     }
+    
+        public function getLastOpenSequenceSens($sens) {
+
+        $sequence =  $this->findOneBy(
+            array ('state'=>'OPEN','sens' => "$sens"),
+            array ('timeStart'=>'DESC')
+            );
+        return $sequence;
+
+    }
+    
+    public function getLastCloseSequenceSensLength($sens) {
+
+        $sequence =  $this->findOneBy(
+            array ('state'=>'CLOSE','sens' => "$sens"),
+            array ('timeStart'=>'DESC')
+            );
+        
+        
+        return $sequence->getLength();
+
+    }
     // todo filtrer pas de trade en cours
     public function getOpenSequence() {
         $sequences =  $this->findBy(
