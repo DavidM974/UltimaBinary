@@ -79,6 +79,17 @@ function getLastWinTrade(Sequence $sequence = NULL) {
                         ->getQuery()
                         ->getOneOrNullResult();
     }
+function getLastTradeSens($sens) {
+        $qb = $this->createQueryBuilder('t');
+
+            $qb->Where('t.contractType = :sens')
+                    ->setParameter('sens', $sens);
+        
+        return $qb->orderBy('t.signalTime', 'DESC')
+                        ->setMaxResults(1)
+                        ->getQuery()
+                        ->getOneOrNullResult();
+    }
 
     function getLastLooseTrade(Sequence $sequence = NULL) {
         $qb = $this->createQueryBuilder('t');

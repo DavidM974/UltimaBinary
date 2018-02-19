@@ -58,7 +58,7 @@ class UBAlgo {
     const DEFAULT_OFA_TAUX = 0.85;
     const DEFAULT_OFA_MIN= 1.5;
     const MISE_RECUP = 0.5;
-    const MISE_MULTIWIN = 1.15;
+    const MISE_MULTIWIN = 2.5;
     const NB_SEQ = 2;
     const PALIER_CRITIQUE = 45;
     const MODE_VERT = 0.025;
@@ -258,8 +258,8 @@ class UBAlgo {
             // je tente de récupérer une partie des pertes de l'autre sequence si un des deux tente un OFA ou est sur son 2nd trade
             $amountCall += $this->calcSumToBalanceSequence($sequenceCall, $sequencePut);
             $amountPut += $this->calcSumToBalanceSequence($sequencePut, $sequenceCall);
-            $trade1->setAmount($amountPut);
-            $trade->setAmount($amountCall);
+            $trade1->setAmount(round($amountPut,2));
+            $trade->setAmount(round($amountCall,2));
             
             
             
@@ -286,9 +286,9 @@ class UBAlgo {
     
     public function calcSumToBalanceSequence(Sequence $sequence1, Sequence $sequence2) {
         if($sequence1->getModeMise() == 1 OR $sequence1->getModeMise() == 2) {
-            if ($sequence2->getLastOFA() > 0){
+            if ($sequence2->getSumToRecup() > 0){// if ($sequence2->getLastOFA() > 0){
                 ECHO "********** AJOUT MISE LAST OFA ********\n";
-                return $sequence2->getLastOFA();
+                return $sequence2->getSumToRecup();//return $sequence2->getLastOFA();
             } else {
                 ECHO "********** AJOUT DEFAUT ------------- MISE LAST OFA ********\n";
                 return UBAlgo::DEFAULT_OFA_MIN;
@@ -544,20 +544,21 @@ class UBAlgo {
 
     public function setResultTrade(Trade $trade) {
         $this->parameter = $this->getLastParameter();
-        $sequence = $trade->getSequence();
         if ($trade->getState() == Trade::STATEWIN && $trade->getSequenceState() != Trade::SEQSTATEDONE) {
             // echo "Wintrade ! \n";
             $this->winTrade($trade);
+            $sequence = $trade->getSequence();
             // echo "MultiWin : ".$sequence->getMultiWin()."\n";
             //echo "MultiLoose : ".$sequence->getMultiLoose()."\n";
             //$this->setSumTalentRecupWithOFA($sequence, $trade->getAmount());
 
-            //if (($sequence->getSumLooseTR() - $sequence->getSumWinTR() < 10) && ($sequence->getMultiLoose() == 1) && $sequence->getLength() >= 17) {
+            /*     HAUT BAS HAUT BAS
             if ($sequence->getMultiLoose() == 1) {
 
-                //     $sequence->setModeMise(4);//OFA BLOQUE
-                $sequence->setModeMise(0);
-            } elseif ($sequence->getMultiWin() == 1  || ($sequence->getMultiwin() == 2) || $this->checkSecurityOut($sequence)) {//|| $sequence->getMultiLoose() > 1
+                     $sequence->setModeMise(4);//OFA BLOQUE
+                //$sequence->setModeMise(0);
+            } else */
+            if ($sequence->getMultiWin() == 1 ) {//|| $sequence->getMultiLoose() > 1 || ($sequence->getMultiwin() == 2) || $this->checkSecurityOut($sequence)
                 $sequence->setModeMise(2); // ONE FOR ALL
             } else {
                 $sequence->setModeMise(0); //DEFAULT
@@ -576,24 +577,24 @@ class UBAlgo {
 
 
             $this->parameterPersister->persist($this->parameter);
-            $isFinish = $sequence->isFinished($this->tradeRepo, $this->parameter->getBalance());
-            if (!$isFinish) {
-                $this->isSequenceFinish($sequence);
-            }
+           
+            $isFinish = $this->isSequenceFinish($sequence);
+            
             if ($isFinish) {
-                $oppositeSeq = $this->sequenceRepo->getLastOpenSequenceSens($this->getOppositeSens($sequence));
-                $this->balanceSeq($sequence, $oppositeSeq);
+                //$oppositeSeq = $this->sequenceRepo->getLastOpenSequenceSens($this->getOppositeSens($sequence));
+                //$this->balanceSeq($sequence, $oppositeSeq);
                 $this->parameter->setLastLengthSequence($sequence->getLength());
                 $this->parameterPersister->persist($this->parameter);
             }
-            $this->checkOFASecure($sequence->getSumLooseTR(), $sequence);
+           // $this->checkOFASecure($sequence->getSumLooseTR(), $sequence);
         } else if ($trade->getState() == Trade::STATELOOSE && $trade->getSequenceState() != Trade::SEQSTATEDONE) {
 
-            $sequence->setMultiWin(0);
             $this->looseTrade($trade);
+            $sequence = $trade->getSequence();
+            $sequence->setMultiWin(0);
             $sequence->setModeMise(0); //DEFAULT
-            /*
-              if ($sequence->getMultiLoose() == 1 && $sequence->getLength() < 2) {
+            
+              /*if ($sequence->getMultiLoose() == 1 && $sequence->getLength() < 2) {
               $sequence->setModeMise(1);
               } */
 
@@ -604,9 +605,9 @@ class UBAlgo {
               } */
 
                 $sequence->setSumLooseTR($sequence->getSumLooseTR() + $trade->getAmount());
-            
+            $this->isSequenceFinish($sequence);
 
-            //  $this->checkLooseBigFirstTrade($trade, $sequence);
+             $this->checkLooseBigFirstTrade($trade, $sequence);
             // $this->checkOFASecure($sequence->getSumLooseTR(), $sequence);
         }
         if ($sequence->getLength() == 40) {
@@ -618,12 +619,14 @@ class UBAlgo {
     
     public function balanceSeq(Sequence $sequenceClose, Sequence $sequenceOpen = NULL){
         $surplus = $sequenceClose->getSumWinTR() - $sequenceClose->getSumLooseTR();
+        
         if ( $surplus > 0.5  && $sequenceOpen != NULL){
-            $sequenceOpen->setSumWinTR($sequenceOpen->getSumWinTR() + $surplus);
-            $isFinish = $sequenceOpen->isFinished($this->tradeRepo, $this->parameter->getBalance());
-            if (!$isFinish) {
-                $this->isSequenceFinish($sequenceOpen);
-            }
+            echo 'Sequence '.$sequenceClose->getId()." sur plus : ".($surplus -0.5)."\n";
+            $sequenceOpen->setSumWinTR($sequenceOpen->getSumWinTR() + ($surplus - 0.5));
+            $sequenceClose->setSumWinTR($sequenceClose->getSumWinTR() - ($surplus - 0.5));
+            $this->sequencePersister->persist($sequenceOpen);
+            $this->sequencePersister->persist($sequenceClose);
+            //$this->isSequenceFinish($sequenceOpen);
         }
     }
     
@@ -650,12 +653,8 @@ class UBAlgo {
 
     public function checkLooseBigFirstTrade(Trade $trade, Sequence $sequence) {
         if ($sequence->getMultiLoose() == 1 && $sequence->getLength() == 1 && $sequence->getSumLooseTR() == (UBAlgo::DEFAULT_MISE + UBAlgo::MISE_MULTIWIN)) {
-            $sequence->setModeMise(1);
-            $trade->setAmount(UBAlgo::DEFAULT_MISE);
-            $this->tradePersister->persist($trade);
-            $this->parameter->setSumLooseTalent($this->parameter->getSumLooseTalent() + UBAlgo::MISE_MULTIWIN);
-            $this->parameterPersister->persist($this->parameter);
-            $sequence->setSumLooseTR($sequence->getSumLooseTR() - UBAlgo::MISE_MULTIWIN);
+            $sequence->setLastOFA(2.5);
+            $this->sequencePersister->persist($sequence);
             return true;
         }
         return false;
@@ -786,11 +785,12 @@ class UBAlgo {
     }
 
     public function isSequenceFinish(Sequence $sequence) {
-        if ($sequence->getSumWinTR() > $sequence->getSumLooseTR() || $this->parameter->getBalance() >= $sequence->getBalanceStart()) {
-            echo "###CLOSE ISFINISHED###";
+        $diff = $sequence->getSumWinTR() - $sequence->getSumLooseTR();
+        if ($diff > 0) {
+            echo "###CLOSE ISFINISHED###  $diff  id : ";
+            echo $sequence->getId()."\n";
             $sequence->setState(Sequence::CLOSE);
             $sequence->setTimeEnd(new \DateTime());
-            $sequence->initMultiEveryTenTrade();
             $this->sequencePersister->persist($sequence);
             $this->parameter->setLastLengthSequence($sequence->getLength());
             $this->parameterPersister->persist($this->parameter);
@@ -1151,12 +1151,27 @@ class UBAlgo {
         $this->parameter = $this->getLastParameter();
         $mise = 0;
         $lastLength = $this->sequenceRepo->getLastCloseSequenceSensLength($sens);
-        echo "$sens lastLength => $lastLength #################\n";
-        if ($this->sequenceRepo->getLastCloseSequenceSensLength($sens) == 1) {
-            $mise += UBAlgo::MISE_MULTIWIN;
+        $lastTrade = $this->tradeRepo->getLastTradeSens($sens);
+        //TODO a reflechir pour continuer sequence win
+        if ($lastLength == 1) {
+            $oppositeSeq = $this->sequenceRepo->getLastOpenSequenceSens($this->getOppositeSensChar($sens));
+            if ($oppositeSeq != NULL){
+                $lastOFA = round($oppositeSeq->getLastOFA()/1.5,2);
+            } else {
+                $lastOFA = 0;
+            }
+            $mise += ($lastOFA > UBAlgo::MISE_MULTIWIN)? $lastOFA : UBAlgo::MISE_MULTIWIN;
         }
 
         return UBAlgo::DEFAULT_MISE + $mise;
+    }
+    
+    public function getOppositeSensChar($sens){
+        if ($sens == 'PUT') {
+            return 'CALL';
+        } else {
+            return 'PUT';
+        }
     }
 
     public function checkSecuritySequenceToRecup() {

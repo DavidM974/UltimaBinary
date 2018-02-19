@@ -37,9 +37,14 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
             array ('state'=>'CLOSE','sens' => "$sens"),
             array ('timeStart'=>'DESC')
             );
+        //verifi si c'est bien une sequence win et pas de loose cloture par les win
+        if ($sequence->getMultiWin() > $sequence->getMultiLoose())
+        {
+            return $sequence->getLength();
+        } else {
+            return 0;
+        }
         
-        
-        return $sequence->getLength();
 
     }
     // todo filtrer pas de trade en cours

@@ -769,7 +769,7 @@ class Sequence
      */
     public function getSumToRecup()
     {
-        return $this->sumToRecup;
+        return $this->sumLooseTR - $this->sumWinTR;
     }
     
      /**
