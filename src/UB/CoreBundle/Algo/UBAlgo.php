@@ -286,9 +286,9 @@ class UBAlgo {
     
     public function calcSumToBalanceSequence(Sequence $sequence1, Sequence $sequence2) {
         if($sequence1->getModeMise() == 1 OR $sequence1->getModeMise() == 2) {
-            if ($sequence2->getSumToRecup() > 0){// if ($sequence2->getLastOFA() > 0){
+            if ($sequence2->getLastOFA() > 0){
                 ECHO "********** AJOUT MISE LAST OFA ********\n";
-                return $sequence2->getSumToRecup();//return $sequence2->getLastOFA();
+                return round($sequence2->getLastOFA()*1.4,2);
             } else {
                 ECHO "********** AJOUT DEFAUT ------------- MISE LAST OFA ********\n";
                 return UBAlgo::DEFAULT_OFA_MIN;
@@ -552,13 +552,17 @@ class UBAlgo {
             //echo "MultiLoose : ".$sequence->getMultiLoose()."\n";
             //$this->setSumTalentRecupWithOFA($sequence, $trade->getAmount());
 
-            /*     HAUT BAS HAUT BAS
-            if ($sequence->getMultiLoose() == 1) {
-
-                     $sequence->setModeMise(4);//OFA BLOQUE
-                //$sequence->setModeMise(0);
-            } else */
-            if ($sequence->getMultiWin() == 1 ) {//|| $sequence->getMultiLoose() > 1 || ($sequence->getMultiwin() == 2) || $this->checkSecurityOut($sequence)
+            /*     HAUT BAS HAUT BAS*/
+            $oppositeSeq = $this->sequenceRepo->getLastOpenSequenceSens($this->getOppositeSens($sequence));
+            if($oppositeSeq != NULL){
+            $sumGlobalToRecup = $sequence->getSumToRecup() + $oppositeSeq->getSumToRecup();
+            } else {
+                $sumGlobalToRecup = $sequence->getSumToRecup();
+            }
+            if ($sequence->getMultiLoose() == 1 && $sumGlobalToRecup > 25) {
+                  //   $sequence->setModeMise(4);//OFA BLOQUE
+                $sequence->setModeMise(0);
+            } elseif ($sequence->getMultiWin() == 1  || ($sequence->getMultiwin() == 2) || $this->checkSecurityOut($sequence)) {//|| $sequence->getMultiLoose() > 1 || ($sequence->getMultiwin() == 2) || $this->checkSecurityOut($sequence)
                 $sequence->setModeMise(2); // ONE FOR ALL
             } else {
                 $sequence->setModeMise(0); //DEFAULT
@@ -1263,6 +1267,9 @@ class UBAlgo {
                 $mise = $sequence->getSumLooseTR() - $sequence->getSumWinTR();
                 $this->parameterPersister->persist($this->parameter);
                 $sequence->setLastOFA($mise);
+                if ($mise <0.4){
+                    $mise += UBAlgo::DEFAULT_OFA_MIN;
+                }
                 echo "---- SET LAST OFA $mise ---------------\n";
                 break;
             case 4:
