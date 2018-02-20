@@ -58,7 +58,7 @@ class UBAlgo {
     const DEFAULT_OFA_TAUX = 0.85;
     const DEFAULT_OFA_MIN= 1.5;
     const MISE_RECUP = 0.5;
-    const MISE_MULTIWIN = 2.5;
+    const MISE_MULTIWIN = 1.5;
     const NB_SEQ = 2;
     const PALIER_CRITIQUE = 45;
     const MODE_VERT = 0.025;
@@ -288,7 +288,7 @@ class UBAlgo {
         if($sequence1->getModeMise() == 1 OR $sequence1->getModeMise() == 2) {
             if ($sequence2->getLastOFA() > 0){
                 ECHO "********** AJOUT MISE LAST OFA ********\n";
-                return round($sequence2->getLastOFA()*1.4,2);
+                return round($sequence2->getLastOFA(),2);
             } else {
                 ECHO "********** AJOUT DEFAUT ------------- MISE LAST OFA ********\n";
                 return UBAlgo::DEFAULT_OFA_MIN;
@@ -511,8 +511,8 @@ class UBAlgo {
         }
     }
 
-    public function checkSecurityOut(Sequence $sequence) {
-        $trades = $this->tradeRepo->getLastFourTrade($sequence);
+    public function checkSecurityOut(Sequence $sequence, $sens) {
+        $trades = $this->tradeRepo->getLastFourTrade($sens, $sequence);
         $trade1 = 'WIN';
         $trade2 = 'LOOSE';
         $trade3 = 'WIN';
@@ -559,10 +559,11 @@ class UBAlgo {
             } else {
                 $sumGlobalToRecup = $sequence->getSumToRecup();
             }
-            if ($sequence->getMultiLoose() == 1 && $sumGlobalToRecup > 25) {
+            if ($sequence->getMultiLoose() == 1 && $sumGlobalToRecup > 50 && ! $this->checkSecurityOut($sequence, $trade->getContractType()) 
+                    && !($sequence->getMultiWin() == 3)) {
                   //   $sequence->setModeMise(4);//OFA BLOQUE
                 $sequence->setModeMise(0);
-            } elseif ($sequence->getMultiWin() == 1  || ($sequence->getMultiwin() == 2) || $this->checkSecurityOut($sequence)) {//|| $sequence->getMultiLoose() > 1 || ($sequence->getMultiwin() == 2) || $this->checkSecurityOut($sequence)
+            } elseif ($sequence->getMultiWin() == 1 ) {//|| $sequence->getMultiLoose() > 1 || ($sequence->getMultiwin() == 2) || $this->checkSecurityOut($sequence)
                 $sequence->setModeMise(2); // ONE FOR ALL
             } else {
                 $sequence->setModeMise(0); //DEFAULT

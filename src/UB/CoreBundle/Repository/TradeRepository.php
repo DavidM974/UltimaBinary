@@ -54,11 +54,13 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
                 ->getResult();
     }
     
-            function getLastFourTrade(Sequence $sequence = NULL) {
+            function getLastFourTrade($sens, Sequence $sequence = NULL) {
         $qb = $this->createQueryBuilder('t');
         if ($sequence != NULL) {
             $qb->Where('t.sequence = :seq')
-            ->setParameter('seq', $sequence);
+            ->setParameter('seq', $sequence)
+            ->andWhere('t.contractType = :sens')
+            ->setParameter('sens', $sens);
         }
         return $qb->orderBy('t.signalTime', 'DESC')
                 ->setMaxResults(4)
