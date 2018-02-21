@@ -36,6 +36,7 @@ class SequencePersister
         $sequence->setMise(0);
         $sequence->setLengthTrinity($LengthTrinity);
         $sequence->setSumLooseTR($newSumLoose);
+        $sequence->setSumWinTR(0);
         $sequence->setTimeStart(new \DateTime());
         $sequence->setBalanceStart($balanceStart);
         $sequence->setSens($sens);

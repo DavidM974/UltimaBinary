@@ -30,20 +30,23 @@ class TradePersister
         $this->em->flush();
     }
     
-    public function newTradeIntercale($amount, Trade $lastTrade, $half = false) {
+    public function newTradeIntercale($amount, Trade $lastTrade, $sequence) {
         $trade = new Trade();
+        if ($lastTrade->getContractType() == 'CALL'){
+            $sens = 'PUT';
+        } else {
+            $sens = 'CALL';
+        }
         $trade->setAmount($amount);
         $trade->setSymbole($lastTrade->getSymbole());
         $trade->setDuration($lastTrade->getDuration());
         $trade->setCurrency($lastTrade->getCurrency());
-        $trade->setContractType($lastTrade->getContractType());
+        $trade->setContractType($sens);
         $trade->setState(Trade::STATELOOSE);
-        if ($half){
-            $trade->setSequenceState(Trade::SEQSTATEHALF);
-        } else {
-            $trade->setSequenceState(Trade::SEQSTATEUNDONE);
-        }
-        $trade->setSequence($lastTrade->getSequence());
+        
+        $trade->setSequenceState(Trade::SEQSTATEUNDONE);
+        
+        $trade->setSequence($sequence);
         $trade->setIdBinary(random_int(100000, 1000000));
         $trade->setSignalTime(new \DateTime());
         //$trade->setCategorySignal($lastTrade->getCategorySignal());
