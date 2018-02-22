@@ -223,7 +223,8 @@ class PortalBinaryCommand extends ContainerAwareCommand
                         $this->mainCore(PortalBinaryCommand::APIKEY, $this->loop);	
                         $this->loop->run();
                     } catch (\Exception $e){
-                        echo 'Exception recue : ',  $e->getMessage(), "\n";
+                        echo 'Exception recue : ',  $e->getMessage(), " ligne ", $e->getLine(), "\n";
+                        exit();
                     }
                 }
       
