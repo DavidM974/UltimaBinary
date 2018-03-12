@@ -98,6 +98,13 @@ class Trade
      * @ORM\Column(name="idBinary", type="bigint", nullable=true)
      */
     private $idBinary;
+    
+    /**
+     * @var bool
+     *
+     * @ORM\Column(name="isMaster", type="boolean")
+     */
+    private $isMaster;
 
 
     /**
@@ -485,6 +492,30 @@ class Trade
     public function getRate()
     {
         return $this->rate;
+    }
+    
+    /**
+     * Set isMaster
+     *
+     * @param boolean $isMaster
+     *
+     * @return Parameter
+     */
+    public function setIsMaster($isMaster)
+    {
+        $this->isMaster = $isMaster;
+
+        return $this;
+    }
+
+    /**
+     * Get isMaster
+     *
+     * @return bool
+     */
+    public function getIsMaster()
+    {
+        return $this->isMaster;
     }
 
 }

@@ -53,11 +53,24 @@ class TradeSignalPersister {
         foreach ($lastTwoTrade as $tmpTrade) {
             if ($tmpTrade->getState() == 'LOOSE') {
                 $nbLoose ++;
+                if ($nbLoose == 1){
+                    $trade1 = $tmpTrade;
+                }
                 $sens = $tmpTrade->getContractType();
             }
             if ($nbLoose == 2 && $sens == $tmpTrade->getContractType()) {
                 $parameter->setTendance(1);
                 if ($tmpTrade->getContractType() == 'CALL') {
+                    $parameter->setTendance(1); //$inverse = 'PUT';
+                } else {
+                    $parameter->setTendance(2); //$inverse = 'CALL';
+                }
+            }
+        }
+        if ($nbLoose == 1){
+            $lastTrade = $this->tradeRepository->getLastTrade();
+            if ($lastTrade->getState() == Trade::STATELOOSE){
+                if ($lastTrade->getContractType() == 'CALL') {
                     $parameter->setTendance(1); //$inverse = 'PUT';
                 } else {
                     $parameter->setTendance(2); //$inverse = 'CALL';
@@ -90,16 +103,16 @@ class TradeSignalPersister {
                 $signal->setContractType('CALL');
             }
         } elseif ($trade->getContractType() == 'CALL' && $trade->getState() == Trade::STATELOOSE) {
-            $signal->setContractType('CALL');
+            $signal->setContractType('PUT');
         } else if ($trade->getContractType() == 'PUT' && $trade->getState() == Trade::STATELOOSE) {
-            $signal->setContractType('PUT');
-        } else if ($trade->getContractType() == 'CALL' && $trade->getState() == Trade::STATEWIN) {
-            $signal->setContractType('PUT');
-        } else {
             $signal->setContractType('CALL');
+        } else if ($trade->getContractType() == 'CALL' && $trade->getState() == Trade::STATEWIN) {
+            $signal->setContractType('CALL');
+        } else {
+            $signal->setContractType('PUT');
         }
 
-$signal->setContractType('PUT');
+//$signal->setContractType('PUT');
         
         /*
           if (mt_rand(0, 99) < 50) {

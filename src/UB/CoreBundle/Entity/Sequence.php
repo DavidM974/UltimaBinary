@@ -155,6 +155,14 @@ class Sequence
      */
     private $lastOFA;
     
+    /**
+     * @var bool
+     *
+     * @ORM\Column(name="isMaster", type="boolean")
+     */
+    private $isMaster;
+
+
     public function __construct()
     {
       $this->trades = new ArrayCollection();
@@ -811,6 +819,28 @@ class Sequence
             $this->setMultiWin(0);
         }
     }
+    /**
+     * Set isMaster
+     *
+     * @param boolean $isMaster
+     *
+     * @return Parameter
+     */
+    public function setIsMaster($isMaster)
+    {
+        $this->isMaster = $isMaster;
 
+        return $this;
+    }
+
+    /**
+     * Get isMaster
+     *
+     * @return bool
+     */
+    public function getIsMaster()
+    {
+        return $this->isMaster;
+    }
 }
 

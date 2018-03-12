@@ -31,9 +31,10 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
     }
 
     function getLastTrade(Sequence $sequence = NULL) {
-        $qb = $this->createQueryBuilder('t');
+        $qb = $this->createQueryBuilder('t')->where('t.isMaster = 1')
+                ->andWhere('t.idBinary > 1000000');
         if ($sequence != NULL) {
-            $qb->Where('t.sequence = :seq')
+            $qb->andWhere('t.sequence = :seq')
             ->setParameter('seq', $sequence);
         }
         return $qb->orderBy('t.signalTime', 'DESC')
@@ -43,9 +44,11 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
     }
     
         function getLastTwoTrade(Sequence $sequence = NULL) {
-        $qb = $this->createQueryBuilder('t');
+        $qb = $this->createQueryBuilder('t')
+                ->where('t.isMaster = 1')
+                ->andWhere('t.idBinary > 1000000');
         if ($sequence != NULL) {
-            $qb->Where('t.sequence = :seq')
+            $qb->andWhere('t.sequence = :seq')
             ->setParameter('seq', $sequence);
         }
         return $qb->orderBy('t.signalTime', 'DESC')
@@ -54,13 +57,13 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
                 ->getResult();
     }
     
-    function getLastFourTrade($sens, Sequence $sequence = NULL) {
-        $qb = $this->createQueryBuilder('t');
+    function getLastFourTrade($isMaster, Sequence $sequence = NULL) {
+        $qb = $this->createQueryBuilder('t')
+                ->where('t.isMaster = :isMaster')
+                ->setParameter('isMaster', $isMaster);
         if ($sequence != NULL) {
-            $qb->Where('t.sequence = :seq')
-            ->setParameter('seq', $sequence)
-            ->andWhere('t.contractType = :sens')
-            ->setParameter('sens', $sens);
+            $qb->andWhere('t.sequence = :seq')
+            ->setParameter('seq', $sequence);
         }
         return $qb->orderBy('t.signalTime', 'DESC')
                 ->setMaxResults(4)
@@ -177,6 +180,8 @@ function getLastTradeSens($sens) {
                 ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATELOOSE)
                 ->andWhere('tr.sequence = :seq')
                 ->setParameter('seq', $sequence)
+                ->andWhere('tr.sequenceState = :seqState')
+                ->setParameter('seqState', \UB\CoreBundle\Entity\Trade::SEQSTATEUNDONE)
                 ->addOrderBy('tr.signalTime', 'ASC')
                 ->getQuery()
                 ->getResult();

@@ -32,18 +32,18 @@ class TradePersister
     
     public function newTradeIntercale($amount, Trade $lastTrade, $sequence) {
         $trade = new Trade();
-        if ($lastTrade->getContractType() == 'CALL'){
-            $sens = 'PUT';
+        if ($lastTrade->getIsMaster()){
+            $isMaster = 0;
         } else {
-            $sens = 'CALL';
+             $isMaster = 1;
         }
         $trade->setAmount($amount);
         $trade->setSymbole($lastTrade->getSymbole());
         $trade->setDuration($lastTrade->getDuration());
         $trade->setCurrency($lastTrade->getCurrency());
-        $trade->setContractType($sens);
+        $trade->setContractType($lastTrade->getContractType());
         $trade->setState(Trade::STATELOOSE);
-        
+        $trade->setIsMaster($isMaster);
         $trade->setSequenceState(Trade::SEQSTATEUNDONE);
         
         $trade->setSequence($sequence);

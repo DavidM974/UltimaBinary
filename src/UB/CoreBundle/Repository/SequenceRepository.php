@@ -21,20 +21,20 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
 
     }
     
-        public function getLastOpenSequenceSens($sens) {
+        public function getLastOpenSequenceSens($isMaster) {
 
         $sequence =  $this->findOneBy(
-            array ('state'=>'OPEN','sens' => "$sens"),
+            array ('state'=>'OPEN','isMaster' => "$isMaster"),
             array ('timeStart'=>'DESC')
             );
         return $sequence;
 
     }
     
-    public function getLastCloseSequenceSensLength($sens) {
+    public function getLastCloseSequenceSensLength($isMaster) {
 
         $sequence =  $this->findOneBy(
-            array ('state'=>'CLOSE','sens' => "$sens"),
+            array ('state'=>'CLOSE','isMaster' => "$isMaster"),
             array ('timeStart'=>'DESC')
             );
         //verifi si c'est bien une sequence win et pas de loose cloture par les win
@@ -80,7 +80,7 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
     
     
 
-    public function getOpenSequenceNotTrading($sens, $idCategSignal = NULL, $martinG = NULL, $symbole = NULL) {
+    public function getOpenSequenceNotTrading($isMaster, $idCategSignal = NULL, $martinG = NULL, $symbole = NULL) {
         $subqb = $this->createQueryBuilder('s');
         $subQuery = $subqb->select('s.id')
                 ->innerJoin('s.trades', 'tr')
@@ -99,8 +99,8 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
                 ->setParameter('subQuery', $subQuery)
                 ->andWhere('s.state = :state')
                 ->setParameter('state', 'OPEN')
-                ->andWhere('s.sens = :sens')
-                ->setParameter('sens', $sens);
+                ->andWhere('s.isMaster = :isMaster')
+                ->setParameter('isMaster', $isMaster);
         if ($this->checkSignalRandomTrade($idCategSignal) || ($symbole != NULL && $this->checkSymboleRandomTrade($symbole->getId()))) {
             echo "*******************TEST------------------------\n";
             $qb->andWhere('s.length <= :size')
