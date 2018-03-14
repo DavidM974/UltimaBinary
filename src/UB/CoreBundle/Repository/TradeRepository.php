@@ -76,7 +76,7 @@ function getLastWinTrade(Sequence $sequence = NULL) {
         if ($sequence != NULL) {
             $qb->Where('t.sequence = :seq')
                     ->setParameter('seq', $sequence)
-                    ->andWhere('tr.state = :state')
+                    ->andWhere('t.state = :state')
                     ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATEWIN);
         }
         return $qb->orderBy('t.signalTime', 'DESC')
@@ -172,18 +172,22 @@ function getLastTradeSens($sens) {
         return $qb;
     }
 
-    public function getLooseTrades($sequence) {
+    public function getLooseTrades($sequence, $inverse = 0) {
         $qb = $this->createQueryBuilder('tr');
 
-        $result = $qb->select('tr')
+        $qb->select('tr')
                 ->Where('tr.state = :state')
                 ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATELOOSE)
                 ->andWhere('tr.sequence = :seq')
                 ->setParameter('seq', $sequence)
                 ->andWhere('tr.sequenceState = :seqState')
-                ->setParameter('seqState', \UB\CoreBundle\Entity\Trade::SEQSTATEUNDONE)
-                ->addOrderBy('tr.signalTime', 'ASC')
-                ->getQuery()
+                ->setParameter('seqState', \UB\CoreBundle\Entity\Trade::SEQSTATEUNDONE);
+                if ($inverse){
+                     $qb->addOrderBy('tr.signalTime', 'DESC');
+                } else {
+                     $qb->addOrderBy('tr.signalTime', 'ASC');
+                }
+        $result = $qb->getQuery()
                 ->getResult();
         return $result;
     }
