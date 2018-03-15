@@ -266,13 +266,13 @@ class UBAlgo {
             $sequenceNotMaster = $this->getSequenceForTrade($trade, 0);
 
             $tradeMaster->setAmount(round($amountMaster, 2));
-            if ($amountMaster > 0.35){
+            if ($amountMaster > 0.35 && $sequenceMaster->getModeMise() != 4){
             $sequenceMaster->setLastOFA($amountMaster);
             }
             $this->sequencePersister->persist($sequenceMaster);
             
             $trade->setAmount(round($amountNotMaster, 2));
-            if ($amountNotMaster > 0.35){
+            if ($amountNotMaster > 0.35 && $sequenceNotMaster->getModeMise() != 4){
             $sequenceNotMaster->setLastOFA($amountNotMaster);
             }
             $this->sequencePersister->persist($sequenceNotMaster);
@@ -548,13 +548,33 @@ class UBAlgo {
         }
         return true;
     }
-
-    public function checkSecurityOutSens($sens) {
-        $trades = $this->tradeRepo->getLastFourTrade($sens);
+    
+        public function checkMode1($isMaster) {
+        $trades = $this->tradeRepo->getLastFourTrade($isMaster);
         $trade1 = 'WIN';
         $trade2 = 'LOOSE';
         $trade3 = 'WIN';
         $trade4 = 'LOOSE';
+
+        $i = 1;
+        foreach ($trades as $trade) {
+            if ($trade->getState() != ${'trade' . $i}) {
+                return false;
+            }
+            $i++;
+        }
+        if ($i < 3) {
+            return false;
+        }
+        return true;
+    }
+
+    public function checkMode4($isMaster) {
+        $trades = $this->tradeRepo->getLastFourTrade($isMaster);
+        $trade1 = 'LOOSE';
+        $trade2 = 'WIN';
+        $trade3 = 'LOOSE';
+        $trade4 = 'WIN';
 
         $i = 1;
         foreach ($trades as $trade) {
@@ -1090,12 +1110,16 @@ class UBAlgo {
         $trades = $this->tradeRepo->getLooseTrades($sequence);
 echo "Reverse Win  id SEQ : ".$sequence->getId()."\n";
         foreach ($trades as $tradeMg) {
-            // echo $tradeMg->getSequenceState();
+           //  echo "Res : $res - Trade : ".$tradeMg->getAmount(). "\n";
             if ($tradeMg->getSequenceState() == Trade::SEQSTATEUNDONE && $tradeMg->getAmount() < $res) {
 
                 $tradeMg->setSequenceState(Trade::SEQSTATEDONE);
                 $this->tradePersister->persist($tradeMg);
                 $res -= $tradeMg->getAmount();
+            } else if ($tradeMg->getSequenceState() == Trade::SEQSTATEUNDONE && $tradeMg->getAmount() > $res){
+                $tradeMg->setAmount($tradeMg->getAmount() - $res);
+                $this->tradePersister->persist($tradeMg);
+                $res = 0;
             }
         }
 
@@ -1303,17 +1327,17 @@ echo "Reverse Win  id SEQ : ".$sequence->getId()."\n";
             $sumLoose = $oppositeSeq->getSumLooseTR() - $oppositeSeq->getSumWinTR();
             if ($oppositeSeq->getLength() > 1 && $sumLoose > 0 && ($lastMise == 0 || ($sumLoose < $lastMise))) {
                 if ($sumLoose > 7){
-                    $mise += ($sumLoose/5);
+                    $mise += ($sumLoose/4);
                 } else {
                 $mise += $sumLoose;
                 }
             } elseif ($lastMise > $sumLoose && $lastMise > 5) {
-                $mise += ($lastMise / 4);
+                $mise += ($lastMise / 3);
             } else {
                  if ($lastMise > 15){
-                $mise += $lastMise/4;
-                 }else if ($lastMise > 7){
                 $mise += $lastMise/3;
+                 }else if ($lastMise > 7){
+                $mise += $lastMise/2;
                  }else if ($lastMise > 3){
                 $mise += $lastMise/2;
                  }else{
@@ -1448,6 +1472,7 @@ echo "Reverse Win  id SEQ : ".$sequence->getId()."\n";
                     }
                 }
                 if ($mise < 5){
+                    $mise += 0.05;
                     $sequence->setMise($mise+0.05);
                 } else {
                     $mise = 0.35;
@@ -1475,7 +1500,7 @@ echo "Reverse Win  id SEQ : ".$sequence->getId()."\n";
                         }
                     }
                     if ($mise >= $sumLoose) {
-                        $mise = $sumLoose + 1;
+                        $mise = $sumLoose + 0.5;
                         //$sequence->setLastOFA($mise);
                       //  $this->reverseDoneAllTRade($sequence);
                     }
@@ -1487,6 +1512,9 @@ echo "Reverse Win  id SEQ : ".$sequence->getId()."\n";
                 break;
             case 3 :
                 $mise = UBAlgo::MISE_MIN;
+                break;
+            case 4 :
+                 $mise = round($sequence->getLastOFA()*1.25,2);
                 break;
         }
         $this->sequencePersister->persist($sequence);

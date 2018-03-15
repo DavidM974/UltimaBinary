@@ -60,7 +60,8 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
     function getLastFourTrade($isMaster, Sequence $sequence = NULL) {
         $qb = $this->createQueryBuilder('t')
                 ->where('t.isMaster = :isMaster')
-                ->setParameter('isMaster', $isMaster);
+                ->setParameter('isMaster', $isMaster)
+                ->andWhere('t.idBinary > 1000000');
         if ($sequence != NULL) {
             $qb->andWhere('t.sequence = :seq')
             ->setParameter('seq', $sequence);
