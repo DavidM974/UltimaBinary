@@ -14,7 +14,7 @@ interface ApiInterface {
                 //demande les X dernier resultat
 		function askLastResult($conn, $nbResult = 10);
                 
-                function getLastResult($data);
+                function getLastResult($data, \UB\CoreBundle\Entity\Symbole $symbole);
                 
                 function SaveNewTrade($data);
 		//ecris le montant dans un fichier

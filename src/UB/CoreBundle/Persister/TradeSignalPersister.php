@@ -42,7 +42,7 @@ class TradeSignalPersister {
         $signal->setCategorySignal($categSignal);
         $signal->setName($categSignal->getName());
 
-        $lastTwoTrade = $this->tradeRepository->getLastTwoTrade();
+        $lastTwoTrade = $this->tradeRepository->getLastTwoTrade($symbole);
         $nbLoose = 0;
         $sens = '';
         

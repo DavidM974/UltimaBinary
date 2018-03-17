@@ -161,7 +161,12 @@ class Sequence
      * @ORM\Column(name="isMaster", type="boolean")
      */
     private $isMaster;
-
+    
+    /**
+    * @ORM\ManyToOne(targetEntity="UB\CoreBundle\Entity\Symbole")
+    * @ORM\JoinColumn(nullable=true)
+    */
+    private $symbole;
 
     public function __construct()
     {
@@ -202,7 +207,29 @@ class Sequence
     {
         return $this->balanceStart;
     }
+    /**
+     * Set symbole
+     *
+     * @param Symbole $symbole
+     *
+     * @return Trade
+     */
+    public function setSymbole(Symbole $symbole)
+    {
+        $this->symbole = $symbole;
 
+        return $this;
+    }
+
+    /**
+     * Get symbole
+     *
+     * @return Symbole
+     */
+    public function getSymbole()
+    {
+        return $this->symbole;
+    }
      /**
      * Set lastOFA
      *

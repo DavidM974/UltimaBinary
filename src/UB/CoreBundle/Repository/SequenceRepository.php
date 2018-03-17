@@ -21,24 +21,24 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
 
     }
     
-        public function getLastOpenSequenceSens($isMaster) {
+        public function getLastOpenSequenceSens($isMaster, $symbole) {
 
         $sequence =  $this->findOneBy(
-            array ('state'=>'OPEN','isMaster' => "$isMaster"),
+            array ('state'=>'OPEN','isMaster' => "$isMaster", 'symbole' => $symbole),
             array ('timeStart'=>'DESC')
             );
         return $sequence;
 
     }
     
-    public function getLastCloseSequenceSensLength($isMaster) {
+    public function getLastCloseSequenceSensLength($isMaster, $symbole) {
 
         $sequence =  $this->findOneBy(
-            array ('state'=>'CLOSE','isMaster' => "$isMaster"),
+            array ('state'=>'CLOSE','isMaster' => "$isMaster", 'symbole' => $symbole),
             array ('timeStart'=>'DESC')
             );
         //verifi si c'est bien une sequence win et pas de loose cloture par les win
-        if ($sequence->getMultiWin() > $sequence->getMultiLoose())
+        if ($sequence != NULL && $sequence->getMultiWin() > $sequence->getMultiLoose())
         {
             return $sequence->getLength();
         } else {
@@ -80,12 +80,14 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
     
     
 
-    public function getOpenSequenceNotTrading($isMaster, $idCategSignal = NULL, $martinG = NULL, $symbole = NULL) {
+    public function getOpenSequenceNotTrading($symbole, $isMaster, $idCategSignal = NULL, $martinG = NULL) {
         $subqb = $this->createQueryBuilder('s');
         $subQuery = $subqb->select('s.id')
                 ->innerJoin('s.trades', 'tr')
                 ->where('tr.state = :state    ')
                 ->setParameter('state', 'TRADE')
+                ->andWhere('tr.symbole = :symbole')
+                ->setParameter('symbole', $symbole)
                 ->getQuery()
                 ->getArrayResult()
         ;
@@ -100,12 +102,15 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
                 ->andWhere('s.state = :state')
                 ->setParameter('state', 'OPEN')
                 ->andWhere('s.isMaster = :isMaster')
-                ->setParameter('isMaster', $isMaster);
-        if ($this->checkSignalRandomTrade($idCategSignal) || ($symbole != NULL && $this->checkSymboleRandomTrade($symbole->getId()))) {
+                ->setParameter('isMaster', $isMaster)
+                ->andWhere('s.symbole = :symbole')
+                ->setParameter('symbole', $symbole)
+                ;
+       /* if ($this->checkSignalRandomTrade($idCategSignal) || ($symbole != NULL && $this->checkSymboleRandomTrade($symbole->getId()))) {
             echo "*******************TEST------------------------\n";
             $qb->andWhere('s.length <= :size')
                 ->setParameter('size',($martinG -1));
-        }
+        }*/
                $query = $qb->getQuery();
         return $query->getResult();
     }

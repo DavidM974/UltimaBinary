@@ -43,10 +43,12 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
                 ->getOneOrNullResult();
     }
     
-        function getLastTwoTrade(Sequence $sequence = NULL) {
+        function getLastTwoTrade($symbole , Sequence $sequence = NULL) {
         $qb = $this->createQueryBuilder('t')
                 ->where('t.isMaster = 1')
-                ->andWhere('t.idBinary > 1000000');
+                ->andWhere('t.idBinary > 1000000')
+                ->andWhere('t.symbole = :symbole')
+                ->setParameter('symbole', $symbole);
         if ($sequence != NULL) {
             $qb->andWhere('t.sequence = :seq')
             ->setParameter('seq', $sequence);
@@ -70,6 +72,22 @@ class TradeRepository extends \Doctrine\ORM\EntityRepository
                 ->setMaxResults(4)
                 ->getQuery()
                 ->getResult();
+    }
+    
+    public function checkFakeTrade(\UB\CoreBundle\Entity\Symbole $symbole) {
+        $currentdate = new \DateTime(); //Date du jour
+                $qb = $this->createQueryBuilder('tr');
+        $res = $qb->select('tr')
+                ->Where('timestampdiff(MINUTE, tr.signalTime, :dateNow) >= 1')
+                ->setParameter('dateNow',  $currentdate->format('Y-m-d H:i:s'))
+                ->andWhere('tr.symbole = :SymboleSig')
+                ->setParameter('SymboleSig', $symbole)
+                ->andWhere('tr.idBinary is NULL')
+                ->andWhere('tr.state = :state')
+                ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATETRADE)
+                ->getQuery()
+                ->getResult();
+        return $res;
     }
     
 function getLastWinTrade(Sequence $sequence = NULL) {
@@ -141,21 +159,25 @@ function getLastTradeSens($sens) {
                         ->getOneOrNullResult();
     }
       
-    public function isTrading() {
+    public function isTrading(\UB\CoreBundle\Entity\Symbole $symbole) {
         $qb = $this->createQueryBuilder('tr')
                 ->Where('tr.state = :state')
                 ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATETRADE)
+                ->andWhere('tr.symbole = :symbole')
+                ->setParameter('symbole', $symbole)
                 ->setMaxResults(1)
                 ->getQuery()
                 ->getOneOrNullResult();
         return $qb;
     }
-    public function isTradingSens($sens) {
+    public function isTradingSens($sens, $symbole) {
         $qb = $this->createQueryBuilder('tr')
                 ->Where('tr.state = :state')
                 ->andWhere('tr.contractType = :sens')
                 ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATETRADE)
                 ->setParameter('sens', $sens)
+                ->andWhere('tr.symbole = :symbole')
+                ->setParameter('symbole', $symbole)
                 ->setMaxResults(1)
                 ->getQuery()
                 ->getOneOrNullResult();
@@ -192,7 +214,22 @@ function getLastTradeSens($sens) {
                 ->getResult();
         return $result;
     }
+    public function getLooseTradesReverse($sequence) {
+        $qb = $this->createQueryBuilder('tr');
 
+        $qb->select('tr')
+                ->Where('tr.state = :state')
+                ->setParameter('state', \UB\CoreBundle\Entity\Trade::STATELOOSE)
+                ->andWhere('tr.sequence = :seq')
+                ->setParameter('seq', $sequence)
+                ->andWhere('tr.sequenceState = :seqState')
+                ->setParameter('seqState', \UB\CoreBundle\Entity\Trade::SEQSTATEUNDONE)
+                ->addOrderBy('tr.signalTime', 'ASC');
+                
+        $result = $qb->getQuery()
+                ->getResult();
+        return $result;
+    }
     public function getSumWinSequence($sequence) {
         return $this->createQueryBuilder('tr')
                         ->Where('tr.state = :state')

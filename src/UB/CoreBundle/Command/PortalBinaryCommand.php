@@ -24,9 +24,12 @@ class PortalBinaryCommand extends ContainerAwareCommand
     private $api;
     private $ubAlgo;
     private $tradeSignalPersister;
+    private $currency;
+    private $symbole;
    // const APIKEY='hbMdhGGQErEeCXN';
-   // const APIKEY='oGrJBdcWE3VPIOQ'; demo elimina
-    const APIKEY = 'ZG9LgGWjNVxxmNi';
+   //const APIKEY='oGrJBdcWE3VPIOQ'; //demo elimina
+   const APIKEY='mBH6b0KVabovDHQ'; // demo 2
+    //const APIKEY = 'ZG9LgGWjNVxxmNi';
     
     
     function __construct(){
@@ -57,12 +60,13 @@ class PortalBinaryCommand extends ContainerAwareCommand
                 $parameterPersister->persist($parameter);
                 // api save new trade
                     $trade = $this->api->saveNewTrade($json);
+                    $this->ubAlgo->setLocked(1);
                     if ($trade != NULL)
                         $this->ubAlgo->updateBalance($trade);
                 }
                 if (isset($json['profit_table'])) {
                 // api getLastResult
-                    $tab = $this->api->getLastResult($json);
+                    $tab = $this->api->getLastResult($json, $this->symbole);
                     foreach ($tab as $trade) {
                         $this->ubAlgo->setResultTrade($trade);
                     }
@@ -97,59 +101,29 @@ class PortalBinaryCommand extends ContainerAwareCommand
 
             $loop->addPeriodicTimer(12, function(Timer $timer) use ( $conn) {
                 // api askLastResult
+         
                  $this->api->askLastResult($conn);
             });
-
-            $loop->addPeriodicTimer(1, function(Timer $timer) use ($conn) {
-                // vérifier si il y a un nouveau signal dans la bdd
-                $this->ubAlgo->checkNewSignal($conn, $this->api);
-                /*
-                $symboleRepo = $this->getContainer()->get('symbole_repo');
-                $categSignal = $this->getContainer()->get('category_signal_repo')->findOneById(5); // récupérer le bon symbole EURUSD ?
-                $parameterRepo = $this->getContainer()->get('parameter_repo');
-                $parameter = $parameterRepo->findOneById(1);
-                $symbole = $symboleRepo->findOneById(9);
-                if(date("s") == "59" and $parameterRepo->findOneById(1)->getTendance() != -1) {
-                    
-                    echo "TENDNANCE -> ".$parameterRepo->findOneById(1)->getTendance() . "\n";
-                 $this->tradeSignalPersister->tendanceSignal($symbole, $categSignal, $parameter->getTendance());
-                } else {
-                    $tradeRepo = $this->getContainer()->get('trade_repo');
-                    $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade());
-                }
-                
-            $entityManager = $this->getContainer()->get('doctrine')->getEntityManager();
-            $entityManager->detach($parameter);*/
-            });
             
-            $loop->addPeriodicTimer(23, function(Timer $timer) use ( $conn) {
-                // Mise à jours du taux des differentes devises
-                /*
+            $loop->addPeriodicTimer(30, function(Timer $timer) use ( $conn) {
+                // api askLastResult
                 $symboleRepo = $this->getContainer()->get('symbole_repo');
-                $listSymbol = $symboleRepo->findAll();
-                foreach ($listSymbol as $symbol) {
-                    $this->api->UpdateRate($conn, 'CALL', $symbol->getName());
-                    $this->api->UpdateRate($conn, 'PUT', $symbol->getName());
-                }*/
-                $tradeRepo = $this->getContainer()->get('trade_repo');
-                $trade = $tradeRepo->getTradeWithNoIdBinary();
-                if ($trade != NULL) {
-                    $parameterRepo = $this->getContainer()->get('parameter_repo');
-                    $parameter = $parameterRepo->findOneById(1);
-                    $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
-                    if ($parameter->getSecurityTrade() == 1){
-                       /* echo "*******DELETE TRADE CORROMPU *******************\n";
-                        $em = $this->getContainer()->get('doctrine.orm.entity_manager');
+                 $tradeRepo = $this->getContainer()->get('trade_repo');
+                 $symbole = $symboleRepo->findOneByName($this->currency);
+                
+                 $list = $tradeRepo->checkFakeTrade($symbole);
+                 if (!empty($list)) {
+                    $em = $this->getContainer()->get('doctrine.orm.entity_manager');
+                    foreach ($list as $trade) {
                         $em->remove($trade);
                         $em->flush();
-                        $parameter->setSecurityTrade(0);
-                        $parameterPersister->persist($parameter);  */
-                    } else {
-                        $parameter->setSecurityTrade(1);
-                        $parameterPersister->persist($parameter); 
                     }
                 }
             });
+
+
+            
+
             
           
             $loop->addPeriodicTimer(5, function(Timer $timer) use ( $conn) {
@@ -162,9 +136,10 @@ class PortalBinaryCommand extends ContainerAwareCommand
                     $parameter = $parameterRepo->findOneById(1);
                     
                    
-                    $symbole = $symboleRepo->findOneById(3); // 9 EURUSD /  3 VOL-25
-                    if($tradeRepo->isTrading() == NULL){
+                    $symbole = $symboleRepo->findOneByName($this->currency); // 9 EURUSD /  3 VOL-25
+                    if($tradeRepo->isTrading($symbole) == NULL  && $this->ubAlgo->isNotLocked()){
                         $this->tradeSignalPersister->randomSignal($symbole, $categSignal,  $tradeRepo->getLastTrade(), $parameter);
+                        $this->ubAlgo->checkNewSignal($conn, $this->api);
                     }
                // }
             });
@@ -190,6 +165,7 @@ class PortalBinaryCommand extends ContainerAwareCommand
     {
         $this
                 ->setName('ub:portal')
+                ->addArgument('currency', InputArgument::REQUIRED, 'The currency is required.')
                 ->setDescription('Genere le robot qui va tourner en tache de fond')
                 ->setHelp('Cette commande vous permet de facilement executer le robot avec symfony 3')
             ;
@@ -206,16 +182,20 @@ class PortalBinaryCommand extends ContainerAwareCommand
         '============',
         '',
     ]);
+        
          $this->api = $this->getContainer()->get('ub_core.binary_api');
          $this->ubAlgo = $this->getContainer()->get('ub_core.algo');
          $this->tradeSignalPersister = $this->getContainer()->get('ub_core.trade_signal_persister');
+         $this->currency = $input->getArgument('currency');
          $parameterRepo = $this->getContainer()->get('parameter_repo');
          $parameterPersister = $this->getContainer()->get('ub_core.parameter_persister');
                 
             $parameter = $parameterRepo->findOneById(1);
             $parameterPersister->persist($parameter);
          //init signal receive when the progam was off
-        $this->ubAlgo->initTradeSignalBegin();
+            $symboleRepo = $this->getContainer()->get('symbole_repo');
+             $this->symbole = $symboleRepo->findOneByName($this->currency);
+        $this->ubAlgo->setSymbole($this->symbole );
                 //mode portal
                 
                 while (1) {

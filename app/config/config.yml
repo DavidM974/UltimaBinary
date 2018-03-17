@@ -82,6 +82,10 @@ doctrine:
               HOUR: DoctrineExtensions\Query\Mysql\Hour
               MINUTE: DoctrineExtensions\Query\Mysql\Minute
               SECOND: DoctrineExtensions\Query\Mysql\Second
+              TIMEDIFF: DoctrineExtensions\Query\Mysql\TimeDiff
+              timestampadd: DoctrineExtensions\Query\Mysql\TimestampAdd
+              timestampdiff: DoctrineExtensions\Query\Mysql\TimestampDiff
+              TIME_TO_SEC: DoctrineExtensions\Query\Mysql\TimeToSec
 
 # Swiftmailer Configuration
 swiftmailer:

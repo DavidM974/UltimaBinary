@@ -36,7 +36,7 @@ class BinaryApi implements ApiInterface {
     }
     
     function miseHausse($conn, Trade $trade) {
-        $unit = ($trade->getSymbole()->getName() == 'R_75') ? 't' : 'm';
+        $unit = 't';//($trade->getSymbole()->getName() == 'R_75') ? 't' : 'm';
         $conn->send('
                     {
                       "buy": "1",
@@ -55,7 +55,7 @@ class BinaryApi implements ApiInterface {
     }
 
     function miseBaisse($conn, Trade $trade) {
-        $unit = ($trade->getSymbole()->getName() == 'R_75') ? 't' : 'm';
+        $unit = 't' ;//($trade->getSymbole()->getName() == 'R_75') ? 't' : 'm';
         $conn->send('
                     {
                       "buy": "1",
@@ -74,7 +74,7 @@ class BinaryApi implements ApiInterface {
     }
 
     //demande les X dernier resultat
-    function askLastResult($conn, $nbResult = 10) {
+    function askLastResult($conn, $nbResult = 20) {
         $date = new \DateTime();
         $date->modify('-3 day');
         $conn->send('
@@ -86,7 +86,7 @@ class BinaryApi implements ApiInterface {
                     }');
     }
 
-    function getLastResult($data) {
+    function getLastResult($data, \UB\CoreBundle\Entity\Symbole $symbole) {
         //crée le fichier pour envoyer au MT4 2 champs transaction_id, res
         $tabProfit = $data['profit_table']['transactions'];
         $tabTread = array();
@@ -99,25 +99,27 @@ class BinaryApi implements ApiInterface {
             $taux = floor(($payout - $mise) / ($mise / 100));
 
             // checker si trade existant sinon j'enregistre
-           $trade =  $this->tradeRepo->findOneBy(array('idBinary' => $transaction_id, 'state' => Trade::STATETRADE));
            
-           if ($trade != NULL  && array_search($transaction_id, $tabTread) == false) {
-               
-               if ($res > 0) {
-                $trade->setAmountRes($res - $trade->getAmount());
-                $trade->setResult(1);
-                $trade->setState(Trade::STATEWIN);
-               } else {
-                   $trade->setResult(0);
-                   $trade->setAmountRes(0);
-                    $trade->setState(Trade::STATELOOSE);
-               }
-               $tabId[] = $transaction_id;
-               $tabTread[] = $trade;
-               $this->tradePersister->persist($trade);
-           } else {
-               //todo créer le trade 
-               //echo "trade non existant ou traiter ----------- \n";
+           $trade =  $this->tradeRepo->findOneBy(array('idBinary' => $transaction_id, 'state' => Trade::STATETRADE));
+            if ($trade != NULL  &&  $trade->getSymbole() == $symbole){
+                if ($trade != NULL  && array_search($transaction_id, $tabTread) == false) {
+
+                    if ($res > 0) {
+                     $trade->setAmountRes($res - $trade->getAmount());
+                     $trade->setResult(1);
+                     $trade->setState(Trade::STATEWIN);
+                    } else {
+                        $trade->setResult(0);
+                        $trade->setAmountRes(0);
+                         $trade->setState(Trade::STATELOOSE);
+                    }
+                    $tabId[] = $transaction_id;
+                    $tabTread[] = $trade;
+                    $this->tradePersister->persist($trade);
+                } else {
+                    //todo créer le trade 
+                    //echo "trade non existant ou traiter ----------- \n";
+                }
            }
         }
         return $tabTread;
@@ -129,7 +131,7 @@ class BinaryApi implements ApiInterface {
         $currency = $this->currencyRepo->findOneBy(array('name' => $data['echo_req']['parameters']['currency']));
         if (!isset($data['echo_req']['error']['code'])) {
             echo "NEW RETOUR API " . $data['echo_req']['parameters']['contract_type'] . "\n";
-            $trade = $this->tradeRepo->isTradingSens($data['echo_req']['parameters']['contract_type']);
+            $trade = $this->tradeRepo->isTradingSens($data['echo_req']['parameters']['contract_type'], $symbole);
             if ($trade == NULL) {
                 echo "BUG pas de TRADE et RETUOR API DUN TRADE\n";
                 exit();
