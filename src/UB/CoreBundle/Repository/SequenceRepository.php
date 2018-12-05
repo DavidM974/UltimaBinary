@@ -77,10 +77,10 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
         return FALSE;
     }
     
+  
     
     
-
-    public function getOpenSequenceNotTrading($symbole, $isMaster, $idCategSignal = NULL, $martinG = NULL) {
+    public function getOpenSequenceNotTrading($symbole, $isMaster) {
         $subqb = $this->createQueryBuilder('s');
         $subQuery = $subqb->select('s.id')
                 ->innerJoin('s.trades', 'tr')
@@ -106,15 +106,38 @@ class SequenceRepository extends \Doctrine\ORM\EntityRepository
                 ->andWhere('s.symbole = :symbole')
                 ->setParameter('symbole', $symbole)
                 ;
-       /* if ($this->checkSignalRandomTrade($idCategSignal) || ($symbole != NULL && $this->checkSymboleRandomTrade($symbole->getId()))) {
-            echo "*******************TEST------------------------\n";
-            $qb->andWhere('s.length <= :size')
-                ->setParameter('size',($martinG -1));
-        }*/
                $query = $qb->getQuery();
         return $query->getResult();
     }
-
+    public function getOpenSequenceTrading($symbole, $isMaster) {
+        $subqb = $this->createQueryBuilder('s');
+        $subQuery = $subqb->select('s.id')
+                ->innerJoin('s.trades', 'tr')
+                ->where('tr.state = :state    ')
+                ->setParameter('state', 'TRADE')
+                ->andWhere('tr.symbole = :symbole')
+                ->setParameter('symbole', $symbole)
+                ->getQuery()
+                ->getArrayResult()
+        ;
+        $qb = $this->createQueryBuilder('s');
+        if (empty($subQuery)) {
+            $subQuery = array(0);
+        }
+        $qb
+                ->select('s')
+                ->where($qb->expr()->in('s.id', ':subQuery'))
+                ->setParameter('subQuery', $subQuery)
+                ->andWhere('s.state = :state')
+                ->setParameter('state', 'OPEN')
+                ->andWhere('s.isMaster = :isMaster')
+                ->setParameter('isMaster', $isMaster)
+                ->andWhere('s.symbole = :symbole')
+                ->setParameter('symbole', $symbole)
+                ;
+               $query = $qb->getQuery();
+        return $query->getOneOrNullResult();
+    }
     public function isSequenceOpen() {
         $sequences = $this->getOpenSequence();
         if (empty($sequences)) {

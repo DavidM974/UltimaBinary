@@ -85,6 +85,39 @@ class BinaryApi implements ApiInterface {
                     "limit": '.$nbResult.'
                     }');
     }
+    function getResultTrade($data) {
+        //crée le fichier pour envoyer au MT4 2 champs transaction_id, res
+        if (isset($data['transaction']['action']) && $data['transaction']['action'] == 'sell') {
+            $tabProfit = $data['transaction'];
+
+            $transaction_id = $tabProfit['contract_id'];
+            $res = $tabProfit['amount'];
+            
+
+            // checker si trade existant sinon j'enregistre
+
+            $trade = $this->tradeRepo->findOneBy(array('idBinary' => $transaction_id, 'state' => Trade::STATETRADE));
+            if ($trade != NULL) {
+               // echo "\\n TRADE trouve $transaction_id  : $res \n\n";
+                if ($res > 0) {
+                    $trade->setAmountRes($res - $trade->getAmount());
+                    $trade->setResult(1);
+                    $trade->setState(Trade::STATEWIN);
+                } else {
+                    $trade->setResult(0);
+                    $trade->setAmountRes(0);
+                    $trade->setState(Trade::STATELOOSE);
+                }
+                $this->tradePersister->persist($trade);
+            } else {
+          //      echo "\n --------------$transaction_id------------ \n\n";
+                //todo créer le trade 
+                //echo "trade non existant ou traiter ----------- \n";
+            }
+             return $trade;
+        }
+        return NULL;
+    }
 
     function getLastResult($data, \UB\CoreBundle\Entity\Symbole $symbole) {
         //crée le fichier pour envoyer au MT4 2 champs transaction_id, res
@@ -142,7 +175,7 @@ class BinaryApi implements ApiInterface {
             $trade->setCurrency($currency);
             $trade->setContractType($data['echo_req']['parameters']['contract_type']);
             $trade->setState(Trade::STATETRADE);
-            $trade->setIdBinary($data['buy']['transaction_id']);
+            $trade->setIdBinary($data['buy']['contract_id']);
             $trade->setSignalTime(new \DateTime());
             $trade->setRate($this->calcRate($symbole, $data['echo_req']['parameters']['contract_type']));
             $this->tradePersister->persist($trade);

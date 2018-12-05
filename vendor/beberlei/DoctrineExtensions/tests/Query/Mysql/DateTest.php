@@ -2,6 +2,8 @@
 
 namespace DoctrineExtensions\Tests\Query\Mysql;
 
+use Doctrine\ORM\Version;
+
 class DateTest extends \DoctrineExtensions\Tests\Query\MysqlTestCase
 {
     public function testDateDiff()
@@ -18,6 +20,19 @@ class DateTest extends \DoctrineExtensions\Tests\Query\MysqlTestCase
         $dql = "SELECT p FROM DoctrineExtensions\Tests\Entities\Date p WHERE DATEADD(CURRENT_TIME(), 4, 'MONTH') < 7";
         $q = $this->entityManager->createQuery($dql);
         $sql = "SELECT d0_.id AS id_0, d0_.created AS created_1 FROM Date d0_ WHERE DATE_ADD(CURRENT_TIME, INTERVAL 4 MONTH) < 7";
+
+        $this->assertEquals($sql, $q->getSql());
+    }
+
+    public function testDateAddWithColumnAlias()
+    {
+        if(Version::VERSION < 2.2) {
+            $this->markTestSkipped('Alias is not supported in Doctrine 2.1 and lower');
+        }
+
+        $dql = "SELECT p.created as alternative FROM DoctrineExtensions\Tests\Entities\Date p HAVING DATEADD(alternative, 4, 'MONTH') < 7";
+        $q = $this->entityManager->createQuery($dql);
+        $sql = "SELECT d0_.created AS created_0 FROM Date d0_ HAVING DATE_ADD(created_0, INTERVAL 4 MONTH) < 7";
 
         $this->assertEquals($sql, $q->getSql());
     }

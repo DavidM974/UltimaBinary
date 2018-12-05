@@ -3,7 +3,6 @@
 namespace React\Tests\Socket;
 
 use React\Socket\SecureServer;
-use React\Socket\TcpServer;
 
 class SecureServerTest extends TestCase
 {
@@ -14,80 +13,27 @@ class SecureServerTest extends TestCase
         }
     }
 
-    public function testGetAddressWillBePassedThroughToTcpServer()
+    public function testGetPortWillBePassedThroughToTcpServer()
     {
-        $tcp = $this->getMockBuilder('React\Socket\ServerInterface')->getMock();
-        $tcp->expects($this->once())->method('getAddress')->willReturn('127.0.0.1:1234');
+        $tcp = $this->getMockBuilder('React\Socket\Server')->disableOriginalConstructor()->getMock();
+        $tcp->expects($this->once())->method('getPort')->willReturn(1234);
 
         $loop = $this->getMock('React\EventLoop\LoopInterface');
 
         $server = new SecureServer($tcp, $loop, array());
 
-        $this->assertEquals('127.0.0.1:1234', $server->getAddress());
+        $this->assertEquals(1234, $server->getPort());
     }
 
-    public function testPauseWillBePassedThroughToTcpServer()
+    public function testShutdownWillBePassedThroughToTcpServer()
     {
-        $tcp = $this->getMockBuilder('React\Socket\ServerInterface')->getMock();
-        $tcp->expects($this->once())->method('pause');
+        $tcp = $this->getMockBuilder('React\Socket\Server')->disableOriginalConstructor()->getMock();
+        $tcp->expects($this->once())->method('shutdown');
 
         $loop = $this->getMock('React\EventLoop\LoopInterface');
 
         $server = new SecureServer($tcp, $loop, array());
 
-        $server->pause();
-    }
-
-    public function testResumeWillBePassedThroughToTcpServer()
-    {
-        $tcp = $this->getMockBuilder('React\Socket\ServerInterface')->getMock();
-        $tcp->expects($this->once())->method('resume');
-
-        $loop = $this->getMock('React\EventLoop\LoopInterface');
-
-        $server = new SecureServer($tcp, $loop, array());
-
-        $server->resume();
-    }
-
-    public function testCloseWillBePassedThroughToTcpServer()
-    {
-        $tcp = $this->getMockBuilder('React\Socket\ServerInterface')->getMock();
-        $tcp->expects($this->once())->method('close');
-
-        $loop = $this->getMock('React\EventLoop\LoopInterface');
-
-        $server = new SecureServer($tcp, $loop, array());
-
-        $server->close();
-    }
-
-    public function testConnectionWillBeEndedWithErrorIfItIsNotAStream()
-    {
-        $loop = $this->getMock('React\EventLoop\LoopInterface');
-
-        $tcp = new TcpServer(0, $loop);
-
-        $connection = $this->getMockBuilder('React\Socket\ConnectionInterface')->getMock();
-        $connection->expects($this->once())->method('end');
-
-        $server = new SecureServer($tcp, $loop, array());
-
-        $server->on('error', $this->expectCallableOnce());
-
-        $tcp->emit('connection', array($connection));
-    }
-
-    public function testSocketErrorWillBeForwarded()
-    {
-        $loop = $this->getMock('React\EventLoop\LoopInterface');
-
-        $tcp = new TcpServer(0, $loop);
-
-        $server = new SecureServer($tcp, $loop, array());
-
-        $server->on('error', $this->expectCallableOnce());
-
-        $tcp->emit('error', array(new \RuntimeException('test')));
+        $server->shutdown();
     }
 }

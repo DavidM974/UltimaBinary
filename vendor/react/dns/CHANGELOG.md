@@ -1,5 +1,65 @@
 # Changelog
 
+## 0.4.13 (2018-02-27)
+
+*   Add `Config::loadSystemConfigBlocking()` to load default system config
+    and support parsing DNS config on all supported platforms
+    (`/etc/resolv.conf` on Unix/Linux/Mac and WMIC on Windows)
+    (#92, #93, #94 and #95 by @clue)
+
+    ```php
+    $config = Config::loadSystemConfigBlocking();
+    $server = $config->nameservers ? reset($config->nameservers) : '8.8.8.8';
+    ```
+
+*   Remove unneeded cyclic dependency on react/socket
+    (#96 by @clue)
+
+## 0.4.12 (2018-01-14)
+
+*   Improve test suite by adding forward compatibility with PHPUnit 6,
+    test against PHP 7.2, fix forward compatibility with upcoming EventLoop releases,
+    add test group to skip integration tests relying on internet connection
+    and add minor documentation improvements.
+    (#85 and #87 by @carusogabriel, #88 and #89 by @clue and #83 by @jsor)
+
+## 0.4.11 (2017-08-25)
+
+*   Feature: Support resolving from default hosts file
+    (#75, #76 and #77 by @clue)
+
+    This means that resolving hosts such as `localhost` will now work as
+    expected across all platforms with no changes required:
+
+    ```php
+    $resolver->resolve('localhost')->then(function ($ip) {
+        echo 'IP: ' . $ip;
+    });
+    ```
+
+    The new `HostsExecutor` exists for advanced usage and is otherwise used
+    internally for this feature.
+
+## 0.4.10 (2017-08-10)
+
+* Feature: Forward compatibility with EventLoop v1.0 and v0.5 and 
+  lock minimum dependencies and work around circular dependency for tests
+  (#70 and #71 by @clue)
+
+* Fix: Work around DNS timeout issues for Windows users
+  (#74 by @clue)
+
+* Documentation and examples for advanced usage
+  (#66 by @WyriHaximus)
+
+* Remove broken TCP code, do not retry with invalid TCP query
+  (#73 by @clue)
+
+* Improve test suite by fixing HHVM build for now again and ignore future HHVM build errors and
+  lock Travis distro so new defaults will not break the build and
+  fix failing tests for PHP 7.1
+  (#68 by @WyriHaximus and #69 and #72 by @clue)
+
 ## 0.4.9 (2017-05-01)
 
 * Feature: Forward compatibility with upcoming Socket v1.0 and v0.8

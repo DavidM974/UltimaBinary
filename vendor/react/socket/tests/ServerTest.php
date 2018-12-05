@@ -2,129 +2,246 @@
 
 namespace React\Tests\Socket;
 
-use React\EventLoop\Factory;
 use React\Socket\Server;
-use Clue\React\Block;
-use React\Socket\ConnectionInterface;
+use React\EventLoop\StreamSelectLoop;
+use React\Stream\Stream;
 
 class ServerTest extends TestCase
 {
-    public function testCreateServer()
-    {
-        $loop = Factory::create();
+    private $loop;
+    private $server;
+    private $port;
 
-        $server = new Server(0, $loop);
+    private function createLoop()
+    {
+        return new StreamSelectLoop();
     }
 
     /**
-     * @expectedException InvalidArgumentException
+     * @covers React\Socket\Server::__construct
+     * @covers React\Socket\Server::listen
+     * @covers React\Socket\Server::getPort
      */
-    public function testConstructorThrowsForInvalidUri()
+    public function setUp()
     {
-        $loop = $this->getMockBuilder('React\EventLoop\LoopInterface')->getMock();
+        $this->loop = $this->createLoop();
+        $this->server = new Server($this->loop);
+        $this->server->listen(0);
 
-        $server = new Server('invalid URI', $loop);
+        $this->port = $this->server->getPort();
     }
 
-    public function testEmitsConnectionForNewConnection()
+    /**
+     * @covers React\EventLoop\StreamSelectLoop::tick
+     * @covers React\Socket\Server::handleConnection
+     * @covers React\Socket\Server::createConnection
+     */
+    public function testConnection()
     {
-        $loop = Factory::create();
+        $client = stream_socket_client('tcp://localhost:'.$this->port);
 
-        $server = new Server(0, $loop);
-        $server->on('connection', $this->expectCallableOnce());
-
-        $client = stream_socket_client($server->getAddress());
-
-        Block\sleep(0.1, $loop);
+        $this->server->on('connection', $this->expectCallableOnce());
+        $this->loop->tick();
     }
 
-    public function testDoesNotEmitConnectionForNewConnectionToPausedServer()
+    /**
+     * @covers React\EventLoop\StreamSelectLoop::tick
+     * @covers React\Socket\Server::handleConnection
+     * @covers React\Socket\Server::createConnection
+     */
+    public function testConnectionWithManyClients()
     {
-        $loop = Factory::create();
+        $client1 = stream_socket_client('tcp://localhost:'.$this->port);
+        $client2 = stream_socket_client('tcp://localhost:'.$this->port);
+        $client3 = stream_socket_client('tcp://localhost:'.$this->port);
 
-        $server = new Server(0, $loop);
-        $server->pause();
-
-
-        $client = stream_socket_client($server->getAddress());
-
-        Block\sleep(0.1, $loop);
+        $this->server->on('connection', $this->expectCallableExactly(3));
+        $this->loop->tick();
+        $this->loop->tick();
+        $this->loop->tick();
     }
 
-    public function testDoesEmitConnectionForNewConnectionToResumedServer()
+    /**
+     * @covers React\EventLoop\StreamSelectLoop::tick
+     * @covers React\Socket\Connection::handleData
+     */
+    public function testDataEventWillNotBeEmittedWhenClientSendsNoData()
     {
-        $loop = Factory::create();
+        $client = stream_socket_client('tcp://localhost:'.$this->port);
 
-        $server = new Server(0, $loop);
-        $server->pause();
-        $server->on('connection', $this->expectCallableOnce());
+        $mock = $this->expectCallableNever();
 
-        $client = stream_socket_client($server->getAddress());
-
-        Block\sleep(0.1, $loop);
-
-        $server->resume();
-        Block\sleep(0.1, $loop);
+        $this->server->on('connection', function ($conn) use ($mock) {
+            $conn->on('data', $mock);
+        });
+        $this->loop->tick();
+        $this->loop->tick();
     }
 
-    public function testDoesNotAllowConnectionToClosedServer()
+    /**
+     * @covers React\EventLoop\StreamSelectLoop::tick
+     * @covers React\Socket\Connection::handleData
+     */
+    public function testDataWillBeEmittedWithDataClientSends()
     {
-        $loop = Factory::create();
+        $client = stream_socket_client('tcp://localhost:'.$this->port);
 
-        $server = new Server(0, $loop);
-        $server->on('connection', $this->expectCallableNever());
-        $address = $server->getAddress();
-        $server->close();
+        fwrite($client, "foo\n");
 
-        $client = @stream_socket_client($address);
+        $mock = $this->expectCallableOnceWith("foo\n");
 
-        Block\sleep(0.1, $loop);
-
-        $this->assertFalse($client);
+        $this->server->on('connection', function ($conn) use ($mock) {
+            $conn->on('data', $mock);
+        });
+        $this->loop->tick();
+        $this->loop->tick();
     }
 
-    public function testEmitsConnectionWithInheritedContextOptions()
+    /**
+     * @covers React\EventLoop\StreamSelectLoop::tick
+     * @covers React\Socket\Connection::handleData
+     */
+    public function testDataWillBeEmittedEvenWhenClientShutsDownAfterSending()
     {
-        if (defined('HHVM_VERSION') && version_compare(HHVM_VERSION, '3.13', '<')) {
-            // https://3v4l.org/hB4Tc
-            $this->markTestSkipped('Not supported on legacy HHVM < 3.13');
-        }
+        $client = stream_socket_client('tcp://localhost:' . $this->port);
+        fwrite($client, "foo\n");
+        stream_socket_shutdown($client, STREAM_SHUT_WR);
 
-        $loop = Factory::create();
+        $mock = $this->expectCallableOnceWith("foo\n");
 
-        $server = new Server(0, $loop, array(
-            'backlog' => 4
-        ));
+        $this->server->on('connection', function ($conn) use ($mock) {
+            $conn->on('data', $mock);
+        });
+        $this->loop->tick();
+        $this->loop->tick();
+    }
 
-        $all = null;
-        $server->on('connection', function (ConnectionInterface $conn) use (&$all) {
-            $all = stream_context_get_options($conn->stream);
+    public function testDataWillBeFragmentedToBufferSize()
+    {
+        $client = stream_socket_client('tcp://localhost:' . $this->port);
+
+        fwrite($client, "Hello World!\n");
+
+        $mock = $this->expectCallableOnceWith("He");
+
+        $this->server->on('connection', function ($conn) use ($mock) {
+            $conn->bufferSize = 2;
+            $conn->on('data', $mock);
+        });
+        $this->loop->tick();
+        $this->loop->tick();
+    }
+
+    public function testLoopWillEndWhenServerIsShutDown()
+    {
+        // explicitly unset server because we already call shutdown()
+        $this->server->shutdown();
+        $this->server = null;
+
+        $this->loop->run();
+    }
+
+    public function testLoopWillEndWhenServerIsShutDownAfterSingleConnection()
+    {
+        $client = stream_socket_client('tcp://localhost:' . $this->port);
+
+        // explicitly unset server because we only accept a single connection
+        // and then already call shutdown()
+        $server = $this->server;
+        $this->server = null;
+
+        $server->on('connection', function ($conn) use ($server) {
+            $conn->close();
+            $server->shutdown();
         });
 
-        $client = stream_socket_client($server->getAddress());
-
-        Block\sleep(0.1, $loop);
-
-        $this->assertEquals(array('socket' => array('backlog' => 4)), $all);
+        $this->loop->run();
     }
 
-    public function testDoesNotEmitSecureConnectionForNewPlainConnection()
+    public function testDataWillBeEmittedInMultipleChunksWhenClientSendsExcessiveAmounts()
     {
-        if (!function_exists('stream_socket_enable_crypto')) {
-            $this->markTestSkipped('Not supported on your platform (outdated HHVM?)');
+        $client = stream_socket_client('tcp://localhost:' . $this->port);
+        $stream = new Stream($client, $this->loop);
+
+        $bytes = 1024 * 1024;
+        $stream->end(str_repeat('*', $bytes));
+
+        $mock = $this->expectCallableOnce();
+
+        // explicitly unset server because we only accept a single connection
+        // and then already call shutdown()
+        $server = $this->server;
+        $this->server = null;
+
+        $received = 0;
+        $server->on('connection', function ($conn) use ($mock, &$received, $server) {
+            // count number of bytes received
+            $conn->on('data', function ($data) use (&$received) {
+                $received += strlen($data);
+            });
+
+            $conn->on('end', $mock);
+
+            // do not await any further connections in order to let the loop terminate
+            $server->shutdown();
+        });
+
+        $this->loop->run();
+
+        $this->assertEquals($bytes, $received);
+    }
+
+    /**
+     * @covers React\EventLoop\StreamSelectLoop::tick
+     */
+    public function testConnectionDoesNotEndWhenClientDoesNotClose()
+    {
+        $client = stream_socket_client('tcp://localhost:'.$this->port);
+
+        $mock = $this->expectCallableNever();
+
+        $this->server->on('connection', function ($conn) use ($mock) {
+            $conn->on('end', $mock);
+        });
+        $this->loop->tick();
+        $this->loop->tick();
+    }
+
+    /**
+     * @covers React\EventLoop\StreamSelectLoop::tick
+     * @covers React\Socket\Connection::end
+     */
+    public function testConnectionDoesEndWhenClientCloses()
+    {
+        $client = stream_socket_client('tcp://localhost:'.$this->port);
+
+        fclose($client);
+
+        $mock = $this->expectCallableOnce();
+
+        $this->server->on('connection', function ($conn) use ($mock) {
+            $conn->on('end', $mock);
+        });
+        $this->loop->tick();
+        $this->loop->tick();
+    }
+
+    /**
+     * @expectedException React\Socket\ConnectionException
+     */
+    public function testListenOnBusyPortThrows()
+    {
+        $another = new Server($this->loop);
+        $another->listen($this->port);
+    }
+
+    /**
+     * @covers React\Socket\Server::shutdown
+     */
+    public function tearDown()
+    {
+        if ($this->server) {
+            $this->server->shutdown();
         }
-
-        $loop = Factory::create();
-
-        $server = new Server('tls://127.0.0.1:0', $loop, array(
-            'tls' => array(
-                'local_cert' => __DIR__ . '/../examples/localhost.pem'
-            )
-        ));
-        $server->on('connection', $this->expectCallableNever());
-
-        $client = stream_socket_client(str_replace('tls://', '', $server->getAddress()));
-
-        Block\sleep(0.1, $loop);
     }
 }

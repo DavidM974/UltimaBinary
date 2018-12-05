@@ -7,12 +7,16 @@ use React\Socket\ServerInterface;
 
 class ServerStub extends EventEmitter implements ServerInterface
 {
-    public function getAddress()
+    public function listen($port, $host = '127.0.0.1')
     {
-        return '127.0.0.1:80';
     }
 
-    public function close()
+    public function getPort()
+    {
+        return 80;
+    }
+
+    public function shutdown()
     {
     }
 }

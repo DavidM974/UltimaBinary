@@ -1,85 +1,20 @@
 # Changelog
 
-## 0.5.3 (2016-12-24)
+## 0.4.6 (2016-12-06)
 
-* Fix: Skip IPv6 tests if not supported by the system
-  (#76 by @clue)
+This is a bugfix release that resolves an issue introduced in the v0.4.5 release.
+You should consider upgrading to the v0.5 release.
 
-* Documentation for `ConnectorInterface`
-  (#77 by @clue)
+* Fix: Always create empty stream context to prevent race condition leading to
+  CN mismatch on TLS enabled connections (#73 by @WyriHaximus)
 
-## 0.5.2 (2016-12-19)
+## 0.4.5 (2016-03-27)
 
-* Feature: Replace `SecureStream` with unlimited read buffer from react/stream v0.4.5
-  (#72 by @clue)
+This is a compatibility release that backports some changes from the v0.5
+release branch. You should consider upgrading to the v0.5 release.
 
-* Feature: Add examples
-  (#75 by @clue)
-
-## 0.5.1 (2016-11-20)
-
-* Feature: Support Promise cancellation for all connectors
-  (#71 by @clue)
-
-  ```php
-  $promise = $connector->create($host, $port);
-
-  $promise->cancel();
-  ```
-
-* Feature: Add TimeoutConnector decorator
-  (#51 by @clue)
-
-  ```php
-  $timeout = new TimeoutConnector($connector, 3.0, $loop);
-  $timeout->create($host, $port)->then(function(Stream $stream) {
-      // connection resolved within 3.0s
-  });
-  ```
-
-## 0.5.0 (2016-03-19)
-
-* Feature / BC break: Support Connector without DNS
-  (#46 by @clue)
-
-  BC break: The `Connector` class now serves as a BC layer only.
-  The `TcpConnector` and `DnsConnector` classes replace its functionality.
-  If you're merely *using* this class, then you're *recommended* to upgrade as
-  per the below snippet – existing code will still work unchanged.
-  If you're `extend`ing the `Connector` (generally not recommended), then you
-  may have to rework your class hierarchy.
-
-  ```php
-// old (still supported, but marked deprecated)
-$connector = new Connector($loop, $resolver);
-
-// new equivalent
-$connector = new DnsConnector(new TcpConnector($loop), $resolver);
-
-// new feature: supports connecting to IP addresses only
-$connector = new TcpConnector($loop);
-```
-
-* Feature: Add socket and SSL/TLS context options to connectors
-  (#52 by @clue)
-
-* Fix: PHP 5.6+ uses new SSL/TLS context options
-  (#61 by @clue)
-
-* Fix: Move SSL/TLS context options to SecureConnector
-  (#43 by @clue)
-
-* Fix: Fix error reporting for invalid addresses
-  (#47 by @clue)
-
-* Fix: Close stream resource if connection fails
-  (#48 by @clue)
-
-* First class support for PHP 5.3 through PHP 7 and HHVM
-  (#53, #54 by @clue)
-
-* Add integration tests for SSL/TLS sockets
-  (#62 by @clue)
+* Fix: PHP 5.6+ uses new SSL/TLS context options backported (#65 by @clue)
+* Fix: Move SSL/TLS context options to SecureConnector (#43 by @clue)
 
 ## 0.4.4 (2015-09-23)
 

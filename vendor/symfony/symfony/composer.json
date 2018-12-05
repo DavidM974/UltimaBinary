@@ -17,8 +17,9 @@
     ],
     "require": {
         "php": ">=5.5.9",
+        "ext-xml": "*",
         "doctrine/common": "~2.4",
-        "twig/twig": "~1.28|~2.0",
+        "twig/twig": "~1.34|~2.4",
         "psr/cache": "~1.0",
         "psr/log": "~1.0",
         "symfony/polyfill-intl-icu": "~1.0",
@@ -94,7 +95,7 @@
         "sensio/framework-extra-bundle": "^3.0.2"
     },
     "conflict": {
-        "phpdocumentor/reflection-docblock": "<3.0",
+        "phpdocumentor/reflection-docblock": "<3.0||>=3.2.0",
         "phpdocumentor/type-resolver": "<0.2.0",
         "phpunit/phpunit": "<4.8.35|<5.4.3,>=5.0"
     },
@@ -106,7 +107,6 @@
             "Symfony\\Bridge\\Doctrine\\": "src/Symfony/Bridge/Doctrine/",
             "Symfony\\Bridge\\Monolog\\": "src/Symfony/Bridge/Monolog/",
             "Symfony\\Bridge\\ProxyManager\\": "src/Symfony/Bridge/ProxyManager/",
-            "Symfony\\Bridge\\Swiftmailer\\": "src/Symfony/Bridge/Swiftmailer/",
             "Symfony\\Bridge\\Twig\\": "src/Symfony/Bridge/Twig/",
             "Symfony\\Bundle\\": "src/Symfony/Bundle/",
             "Symfony\\Component\\": "src/Symfony/Component/"
