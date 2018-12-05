@@ -1,0 +1,7 @@
+Lancement de la commande Ultima Binary V1
+============
+
+
+SELECT t0_.id AS id_0, t0_.amount AS amount_1, t0_.duration AS duration_2, t0_.signal_time AS signal_time_3, t0_.state AS state_4, t0_.sequence_state AS sequence_state_5, t0_.contract_type AS contract_type_6, t0_.result AS result_7, t0_.amount_res AS amount_res_8, t0_.idBinary AS idBinary_9, t0_.isMaster AS isMaster_10, t0_.rate AS rate_11, t0_.sequence_id AS sequence_id_12, t0_.symbole_id AS symbole_id_13, t0_.category_signal_id AS category_signal_id_14, t0_.currency_id AS currency_id_15 FROM trade t0_ WHERE TIMESTAMPDIFF(MINUTE, ?, t0_.signal_time) >= 1 AND t0_.symbole_id = ? AND t0_.idBinary IS NULL AND t0_.state = ?
+
+2018-03-17 16:21:25
